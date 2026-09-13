@@ -23,21 +23,27 @@ class ScreenLockMonitor(private val context: Context) {
     }
 
     val isScreenLocked: Flow<Boolean> = callbackFlow {
-        // Emit initial state
-        trySend(isDeviceLockedOrScreenOff())
+        var isLocked = isDeviceLockedOrScreenOff()
+        trySend(isLocked)
 
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 when (intent?.action) {
                     Intent.ACTION_SCREEN_OFF -> {
+                        isLocked = true
                         trySend(true)
                     }
                     Intent.ACTION_USER_PRESENT -> {
-                        // User unlocked their phone
+                        // User explicitly unlocked the phone to use it
+                        isLocked = false
                         trySend(false)
                     }
                     Intent.ACTION_SCREEN_ON -> {
-                        trySend(isDeviceLockedOrScreenOff())
+                        // If device keyguard is locked, it's definitely locked
+                        if (keyguardManager.isKeyguardLocked) {
+                            isLocked = true
+                            trySend(true)
+                        }
                     }
                 }
             }
@@ -56,3 +62,4 @@ class ScreenLockMonitor(private val context: Context) {
         }
     }.distinctUntilChanged()
 }
+

@@ -20,8 +20,10 @@ import com.standbypro.settings.SettingsRepository
 import com.standbypro.settings.dataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class StandByService : Service() {
@@ -30,18 +32,26 @@ class StandByService : Service() {
     private val scope = CoroutineScope(Dispatchers.Main + job)
 
     private lateinit var standByController: StandByController
+    private lateinit var chargingMonitor: ChargingStateMonitor
+
+    private var chargingWakeLock: PowerManager.WakeLock? = null
+    private var isStandByActive = false
+    private var exitJob: Job? = null
+    private var lastLaunchTime = 0L
 
     companion object {
         const val CHANNEL_ID = "standby_service_channel"
+        const val FULLSCREEN_CHANNEL_ID = "standby_fullscreen_channel"
         const val NOTIFICATION_ID = 1
+        const val NOTIFICATION_FULLSCREEN_ID = 2
         const val ACTION_EXIT_STANDBY = "com.standbypro.ACTION_EXIT_STANDBY"
     }
 
     override fun onCreate() {
         super.onCreate()
-        
+
         val settingsRepository = SettingsRepository(applicationContext.dataStore)
-        val chargingMonitor = ChargingStateMonitor(applicationContext)
+        chargingMonitor = ChargingStateMonitor(applicationContext)
         val orientationMonitor = OrientationMonitor(applicationContext)
         val screenLockMonitor = ScreenLockMonitor(applicationContext)
 
@@ -53,55 +63,101 @@ class StandByService : Service() {
             settingsRepository = settingsRepository
         )
 
-        createNotificationChannel()
+        createNotificationChannels()
         startForeground(NOTIFICATION_ID, createNotification())
 
         monitorState()
     }
 
-    private var lastLaunchTime = 0L
-
     private fun monitorState() {
+        // 1. Maintain a partial wake lock while device is charging so CPU does not
+        // suspend sensors when the user presses the power button to turn screen off.
+        scope.launch {
+            chargingMonitor.chargingState.collect { state ->
+                updateChargingWakeLock(state.isCharging)
+            }
+        }
+
+        // 2. Monitor StandBy trigger state
         scope.launch {
             standByController.standByState.collect { state ->
                 if (state == StandByState.STANDBY_ACTIVE) {
+                    exitJob?.cancel()
+                    isStandByActive = true
                     val now = System.currentTimeMillis()
-                    if (now - lastLaunchTime > 3000L) {
+                    if (now - lastLaunchTime > 2500L) {
                         lastLaunchTime = now
                         launchStandByActivity()
                     }
-                } else {
-                    // Send broadcast so MainActivity can exit if it was auto-started
-                    val exitIntent = Intent(ACTION_EXIT_STANDBY).apply {
-                        setPackage(packageName)
+                } else if (isStandByActive) {
+                    // Debounce exit by 1.5 seconds to avoid momentary motion/sensor glitches
+                    exitJob?.cancel()
+                    exitJob = scope.launch {
+                        delay(1500L)
+                        if (standByController.standByState.value != StandByState.STANDBY_ACTIVE) {
+                            isStandByActive = false
+                            val exitIntent = Intent(ACTION_EXIT_STANDBY).apply {
+                                setPackage(packageName)
+                            }
+                            sendBroadcast(exitIntent)
+                        }
                     }
-                    sendBroadcast(exitIntent)
+                }
+            }
+        }
+    }
+
+    private fun updateChargingWakeLock(isCharging: Boolean) {
+        if (isCharging) {
+            if (chargingWakeLock == null) {
+                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                chargingWakeLock = pm.newWakeLock(
+                    PowerManager.PARTIAL_WAKE_LOCK,
+                    "standbypro:charging_cpu_monitor"
+                )
+            }
+            if (chargingWakeLock?.isHeld == false) {
+                try {
+                    chargingWakeLock?.acquire()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        } else {
+            if (chargingWakeLock?.isHeld == true) {
+                try {
+                    chargingWakeLock?.release()
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
         }
     }
 
     private fun launchStandByActivity() {
-        // Acquire brief wake lock to turn on screen if locked
+        // 1. Turn on the screen via wake lock with ACQUIRE_CAUSES_WAKEUP
         try {
             val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
             @Suppress("DEPRECATION")
             val wakeLock = powerManager.newWakeLock(
-                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE,
                 "standbypro:activation_wakeup"
             )
-            wakeLock.acquire(3000L)
+            wakeLock.acquire(4000L)
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
-        // Full screen intent for modern Android lock-screen override
+        // 2. Build full-screen intent for modern Android lock screen override
         val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
             putExtra("EXTRA_START_STANDBY", true)
             putExtra("EXTRA_AUTO_STARTED", true)
         }
-        
+
         val pendingIntent = PendingIntent.getActivity(
             this,
             0,
@@ -109,22 +165,26 @@ class StandByService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val fullScreenIntentBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
+        // Important: Full-screen intent MUST use HIGH/MAX importance channel!
+        val fullScreenNotification = NotificationCompat.Builder(this, FULLSCREEN_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_charging)
             .setContentTitle("StandBy Pro")
-            .setContentText("Activating StandBy...")
+            .setContentText("Activating StandBy ambient display...")
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setFullScreenIntent(pendingIntent, true)
+            .setAutoCancel(true)
+            .build()
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.notify(2, fullScreenIntentBuilder.build())
-        
-        // Also try direct launch
+        notificationManager.notify(NOTIFICATION_FULLSCREEN_ID, fullScreenNotification)
+
+        // 3. Also trigger direct launch for active unlocked/transitional cases
         try {
             startActivity(intent)
         } catch (e: Exception) {
-            // Handled by fullScreenIntent
+            e.printStackTrace()
         }
     }
 
@@ -132,28 +192,53 @@ class StandByService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_charging)
             .setContentTitle("StandBy Pro is running")
-            .setContentText("Monitoring charging, landscape, and lock state")
+            .setContentText("Monitoring charging, landscape & lock state")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .build()
     }
 
-    private fun createNotificationChannel() {
-        val channel = NotificationChannel(
+    private fun createNotificationChannels() {
+        val manager = getSystemService(NotificationManager::class.java) ?: return
+
+        // 1. Ongoing service channel (silent, low importance)
+        val serviceChannel = NotificationChannel(
             CHANNEL_ID,
-            "StandBy Service",
+            "StandBy Background Monitor",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "Maintains StandBy Pro monitoring in the background"
+            setShowBadge(false)
         }
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        manager.createNotificationChannel(serviceChannel)
+
+        // 2. Full-screen lock screen activation channel (high importance, public visibility)
+        val activationChannel = NotificationChannel(
+            FULLSCREEN_CHANNEL_ID,
+            "StandBy Screen Activation",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Awakens device screen into StandBy display over lock screen"
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            setSound(null, null)
+            enableVibration(false)
+            setShowBadge(false)
+        }
+        manager.createNotificationChannel(activationChannel)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
         super.onDestroy()
+        if (chargingWakeLock?.isHeld == true) {
+            try {
+                chargingWakeLock?.release()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
         scope.cancel()
     }
 }
+
