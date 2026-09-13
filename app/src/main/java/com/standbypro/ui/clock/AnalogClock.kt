@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
 import java.time.LocalDateTime
 import kotlin.math.cos
@@ -30,9 +29,9 @@ fun AnalogClock(
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.minDimension / 2 * 0.9f
 
-        // Draw ticks
+        // Draw ticks — offset by -90° so 0 (12 o'clock) is at the top
         for (i in 0..59) {
-            val angle = i * 6 * (Math.PI / 180)
+            val angle = (i * 6 - 90) * (Math.PI / 180)
             val isHour = i % 5 == 0
             
             val lineLength = if (isHour) radius * 0.1f else radius * 0.05f
@@ -91,7 +90,7 @@ fun AnalogClock(
             rotate(secondAngle, center) {
                 drawLine(
                     color = accentColor,
-                    start = center.copy(y = center.y + radius * 0.1f), // Small tail
+                    start = center.copy(y = center.y + radius * 0.1f),
                     end = center.copy(y = center.y - radius * 0.8f),
                     strokeWidth = 4f,
                     cap = StrokeCap.Round

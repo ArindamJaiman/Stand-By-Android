@@ -54,11 +54,17 @@ class StandByService : Service() {
         monitorState()
     }
 
+    private var lastLaunchTime = 0L
+
     private fun monitorState() {
         scope.launch {
             standByController.standByState.collect { state ->
                 if (state == StandByState.STANDBY_ACTIVE) {
-                    launchStandByActivity()
+                    val now = System.currentTimeMillis()
+                    if (now - lastLaunchTime > 3000L) {
+                        lastLaunchTime = now
+                        launchStandByActivity()
+                    }
                 }
             }
         }
