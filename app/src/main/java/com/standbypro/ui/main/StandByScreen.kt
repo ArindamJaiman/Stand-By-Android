@@ -101,7 +101,7 @@ fun StandByScreen(
     val targetAccent = when {
         activeNightMode -> StandByNightRed
         isDimmed -> Color.Gray
-        else -> Color(0xFFFF9500) // Apple StandBy Warm Orange accent by default
+        else -> settings.activeColorTheme.color
     }
 
     val animatedAccent by animateColorAsState(
@@ -298,6 +298,21 @@ fun StandByScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Quick Color Theme Swatch Picker: Tap to cycle through accent colors
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(settings.activeColorTheme.color)
+                            .clickable {
+                                viewModel.reportInteraction()
+                                val allThemes = com.standbypro.settings.StandByColorTheme.entries
+                                val currentIndex = allThemes.indexOfFirst { it.id == settings.colorThemeId }
+                                val nextTheme = allThemes[(currentIndex + 1) % allThemes.size]
+                                viewModel.setColorTheme(nextTheme.id)
+                            }
+                    )
+
                     // Interactive Brightness Notch Button
                     Row(
                         verticalAlignment = Alignment.CenterVertically,

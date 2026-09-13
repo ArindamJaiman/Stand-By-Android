@@ -3,6 +3,7 @@ package com.standbypro.ui.settings
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,11 +26,13 @@ import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.BrightnessMedium
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.ScreenRotation
@@ -61,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.standbypro.settings.ClockStyle
+import com.standbypro.settings.StandByColorTheme
 import com.standbypro.theme.StandByAccent
 import com.standbypro.theme.StandByBackground
 import kotlin.math.roundToInt
@@ -316,6 +320,70 @@ fun SettingsScreen(
                 }
             }
 
+            // Widget Color Themes
+            item {
+                SettingsCategoryTitle("WIDGET COLOR THEMES", color = settings.activeColorTheme.color)
+            }
+
+            item {
+                SettingsCard {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(settings.activeColorTheme.color)
+                                )
+                                Spacer(modifier = Modifier.width(14.dp))
+                                Column {
+                                    Text(
+                                        text = "Active: ${settings.activeColorTheme.displayName}",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = "Customizes clock digits, second hand & calendar highlights",
+                                        fontSize = 12.sp,
+                                        color = StandByOnSurfaceDim
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Grid of all 8 curated color themes
+                        val themes = StandByColorTheme.entries
+                        val rows = themes.chunked(2)
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            rows.forEach { rowThemes ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    rowThemes.forEach { theme ->
+                                        val isSelected = theme.id.equals(settings.colorThemeId, ignoreCase = true)
+                                        ColorThemeChoiceCard(
+                                            theme = theme,
+                                            isSelected = isSelected,
+                                            onClick = { viewModel.setColorTheme(theme.id) },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Protection & Night Mode
             item {
                 SettingsCategoryTitle("OLED & AMBIENT PROTECTION")
@@ -500,12 +568,12 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsCategoryTitle(title: String) {
+private fun SettingsCategoryTitle(title: String, color: Color = StandByAccent) {
     Text(
         text = title,
         fontSize = 12.sp,
         fontWeight = FontWeight.SemiBold,
-        color = StandByAccent,
+        color = color,
         letterSpacing = 1.sp,
         modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
     )
@@ -647,3 +715,60 @@ private fun BrightnessPresetChip(
         )
     }
 }
+
+@Composable
+private fun ColorThemeChoiceCard(
+    theme: StandByColorTheme,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isSelected) theme.color.copy(alpha = 0.16f) else StandBySurfaceVariant)
+            .border(
+                width = if (isSelected) 1.5.dp else 0.dp,
+                color = if (isSelected) theme.color else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(theme.color)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = theme.displayName,
+                    fontSize = 12.sp,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) Color.White else StandByOnSurfaceDim,
+                    maxLines = 1
+                )
+            }
+
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = theme.color,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+

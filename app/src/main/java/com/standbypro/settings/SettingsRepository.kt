@@ -28,6 +28,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val SHOW_SECONDS = booleanPreferencesKey("show_seconds")
         val CLOCK_STYLE = stringPreferencesKey("clock_style")
         val BRIGHTNESS_LEVEL = androidx.datastore.preferences.core.floatPreferencesKey("brightness_level")
+        val COLOR_THEME_ID = stringPreferencesKey("color_theme_id")
     }
 
     val settingsFlow: Flow<StandBySettings> = dataStore.data
@@ -56,7 +57,8 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 use24Hour = preferences[PreferencesKeys.USE_24_HOUR] ?: false,
                 showSeconds = preferences[PreferencesKeys.SHOW_SECONDS] ?: false,
                 clockStyle = clockStyle,
-                brightnessLevel = preferences[PreferencesKeys.BRIGHTNESS_LEVEL] ?: 0.05f
+                brightnessLevel = preferences[PreferencesKeys.BRIGHTNESS_LEVEL] ?: 0.05f,
+                colorThemeId = preferences[PreferencesKeys.COLOR_THEME_ID] ?: StandByColorTheme.ORANGE.id
             )
         }
 
@@ -117,6 +119,12 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setBrightnessLevel(brightness: Float) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.BRIGHTNESS_LEVEL] = brightness.coerceIn(0.01f, 1.0f)
+        }
+    }
+
+    suspend fun setColorTheme(colorThemeId: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.COLOR_THEME_ID] = colorThemeId
         }
     }
 }

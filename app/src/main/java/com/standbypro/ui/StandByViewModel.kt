@@ -131,4 +131,8 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     fun setBrightnessLevel(brightness: Float) {
         viewModelScope.launch { settingsRepository.setBrightnessLevel(brightness) }
     }
+
+    fun setColorTheme(colorThemeId: String) {
+        viewModelScope.launch { settingsRepository.setColorTheme(colorThemeId) }
+    }
 }
