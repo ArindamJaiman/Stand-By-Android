@@ -2,6 +2,7 @@ package com.standbypro.domain
 
 import com.standbypro.hardware.ChargingStateMonitor
 import com.standbypro.hardware.OrientationMonitor
+import com.standbypro.hardware.ScreenLockMonitor
 import com.standbypro.settings.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +15,7 @@ class StandByController(
     private val scope: CoroutineScope,
     private val chargingStateMonitor: ChargingStateMonitor,
     private val orientationMonitor: OrientationMonitor,
+    private val screenLockMonitor: ScreenLockMonitor,
     private val settingsRepository: SettingsRepository
 ) {
 
@@ -25,10 +27,11 @@ class StandByController(
             combine(
                 chargingStateMonitor.chargingState,
                 orientationMonitor.orientation,
+                screenLockMonitor.isScreenLocked,
                 settingsRepository.settingsFlow
-            ) { chargingState, orientation, settings ->
+            ) { chargingState, orientation, isScreenLocked, settings ->
                 
-                if (!settings.isEnabled) {
+                if (!settings.isEnabled || !settings.autoStartWhileCharging) {
                     return@combine StandByState.DISABLED
                 }
                 
@@ -38,8 +41,11 @@ class StandByController(
                 val requiresLandscape = settings.requireLandscape
                 val isProperlyOriented = if (requiresLandscape) isLandscape else true
 
+                val requiresScreenLocked = settings.requireScreenLocked
+                val isLockedConditionMet = if (requiresScreenLocked) isScreenLocked else true
+
                 when {
-                    chargingState.isCharging && isProperlyOriented -> StandByState.STANDBY_ACTIVE
+                    chargingState.isCharging && isProperlyOriented && isLockedConditionMet -> StandByState.STANDBY_ACTIVE
                     chargingState.isCharging && !isProperlyOriented -> StandByState.CHARGING
                     !chargingState.isCharging && isProperlyOriented -> StandByState.LANDSCAPE
                     else -> StandByState.ENABLED

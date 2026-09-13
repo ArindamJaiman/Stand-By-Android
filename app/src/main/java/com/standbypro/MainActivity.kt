@@ -1,6 +1,9 @@
 package com.standbypro
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -29,6 +32,18 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: StandByViewModel by viewModels()
     private var isStandByActive by mutableStateOf(false)
+    private var isAutoStarted = false
+
+    private val exitReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            // When user unplugs, unlocks the phone, or rotates portrait:
+            // If StandBy was launched automatically over the lock screen, finish to return to normal
+            if (isAutoStarted && isStandByActive) {
+                configureImmersiveStandBy(false)
+                finish()
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,10 +61,22 @@ class MainActivity : ComponentActivity() {
         }
 
         val launchStandBy = intent.getBooleanExtra("EXTRA_START_STANDBY", false)
+        isAutoStarted = intent.getBooleanExtra("EXTRA_AUTO_STARTED", false)
         isStandByActive = launchStandBy
 
         if (launchStandBy) {
             configureImmersiveStandBy(true)
+        }
+
+        // Register receiver for exit triggers
+        val filter = IntentFilter().apply {
+            addAction(StandByService.ACTION_EXIT_STANDBY)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(exitReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(exitReceiver, filter)
         }
 
         enableEdgeToEdge()
@@ -63,19 +90,28 @@ class MainActivity : ComponentActivity() {
                     if (isStandByActive) {
                         BackHandler {
                             configureImmersiveStandBy(false)
-                            isStandByActive = false
+                            if (isAutoStarted) {
+                                finish()
+                            } else {
+                                isStandByActive = false
+                            }
                         }
                         StandByScreen(
                             viewModel = viewModel,
                             onExit = {
                                 configureImmersiveStandBy(false)
-                                isStandByActive = false
+                                if (isAutoStarted) {
+                                    finish()
+                                } else {
+                                    isStandByActive = false
+                                }
                             }
                         )
                     } else {
                         SettingsScreen(
                             viewModel = viewModel,
                             onLaunchPreview = {
+                                isAutoStarted = false
                                 configureImmersiveStandBy(true)
                                 isStandByActive = true
                             }
@@ -90,8 +126,18 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.getBooleanExtra("EXTRA_START_STANDBY", false)) {
+            isAutoStarted = intent.getBooleanExtra("EXTRA_AUTO_STARTED", false)
             configureImmersiveStandBy(true)
             isStandByActive = true
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            unregisterReceiver(exitReceiver)
+        } catch (e: Exception) {
+            // Ignored
         }
     }
 

@@ -8,12 +8,14 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.standbypro.MainActivity
 import com.standbypro.domain.StandByController
 import com.standbypro.domain.StandByState
 import com.standbypro.hardware.ChargingStateMonitor
 import com.standbypro.hardware.OrientationMonitor
+import com.standbypro.hardware.ScreenLockMonitor
 import com.standbypro.settings.SettingsRepository
 import com.standbypro.settings.dataStore
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +34,7 @@ class StandByService : Service() {
     companion object {
         const val CHANNEL_ID = "standby_service_channel"
         const val NOTIFICATION_ID = 1
+        const val ACTION_EXIT_STANDBY = "com.standbypro.ACTION_EXIT_STANDBY"
     }
 
     override fun onCreate() {
@@ -40,11 +43,13 @@ class StandByService : Service() {
         val settingsRepository = SettingsRepository(applicationContext.dataStore)
         val chargingMonitor = ChargingStateMonitor(applicationContext)
         val orientationMonitor = OrientationMonitor(applicationContext)
+        val screenLockMonitor = ScreenLockMonitor(applicationContext)
 
         standByController = StandByController(
             scope = scope,
             chargingStateMonitor = chargingMonitor,
             orientationMonitor = orientationMonitor,
+            screenLockMonitor = screenLockMonitor,
             settingsRepository = settingsRepository
         )
 
@@ -65,16 +70,36 @@ class StandByService : Service() {
                         lastLaunchTime = now
                         launchStandByActivity()
                     }
+                } else {
+                    // Send broadcast so MainActivity can exit if it was auto-started
+                    val exitIntent = Intent(ACTION_EXIT_STANDBY).apply {
+                        setPackage(packageName)
+                    }
+                    sendBroadcast(exitIntent)
                 }
             }
         }
     }
 
     private fun launchStandByActivity() {
-        // Full screen intent for modern Android
+        // Acquire brief wake lock to turn on screen if locked
+        try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            @Suppress("DEPRECATION")
+            val wakeLock = powerManager.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "standbypro:activation_wakeup"
+            )
+            wakeLock.acquire(3000L)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Full screen intent for modern Android lock-screen override
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("EXTRA_START_STANDBY", true)
+            putExtra("EXTRA_AUTO_STARTED", true)
         }
         
         val pendingIntent = PendingIntent.getActivity(
@@ -95,11 +120,11 @@ class StandByService : Service() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(2, fullScreenIntentBuilder.build())
         
-        // Also try direct launch if allowed
+        // Also try direct launch
         try {
             startActivity(intent)
         } catch (e: Exception) {
-            // Ignored, full screen intent will handle it if background start is blocked
+            // Handled by fullScreenIntent
         }
     }
 
@@ -107,7 +132,7 @@ class StandByService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_charging)
             .setContentTitle("StandBy Pro is running")
-            .setContentText("Monitoring charging and orientation")
+            .setContentText("Monitoring charging, landscape, and lock state")
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .build()

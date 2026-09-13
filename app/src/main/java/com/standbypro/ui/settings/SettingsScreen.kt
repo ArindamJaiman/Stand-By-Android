@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.ScreenRotation
@@ -229,6 +230,14 @@ fun SettingsScreen(
                         subtitle = "Only trigger StandBy when placed horizontally on a stand",
                         checked = settings.requireLandscape,
                         onCheckedChange = { viewModel.setRequireLandscape(it) }
+                    )
+                    HorizontalDivider(color = StandBySurfaceVariant, thickness = 1.dp)
+                    SettingToggleItem(
+                        icon = Icons.Default.Lock,
+                        title = "Only When Screen Locked",
+                        subtitle = "Only activate when device screen is locked or turned off",
+                        checked = settings.requireScreenLocked,
+                        onCheckedChange = { viewModel.setRequireScreenLocked(it) }
                     )
                 }
             }

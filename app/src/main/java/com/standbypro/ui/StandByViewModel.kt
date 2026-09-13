@@ -104,6 +104,10 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch { settingsRepository.setRequireLandscape(requireLandscape) }
     }
 
+    fun setRequireScreenLocked(requireScreenLocked: Boolean) {
+        viewModelScope.launch { settingsRepository.setRequireScreenLocked(requireScreenLocked) }
+    }
+
     fun setNightModeEnabled(nightModeEnabled: Boolean) {
         viewModelScope.launch { settingsRepository.setNightModeEnabled(nightModeEnabled) }
     }
