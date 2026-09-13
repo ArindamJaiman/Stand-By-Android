@@ -7,15 +7,18 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import java.time.LocalDateTime
+import java.util.Calendar
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -24,20 +27,20 @@ fun AnalogClock(
     time: LocalDateTime,
     modifier: Modifier = Modifier,
     accentColor: Color = MaterialTheme.colorScheme.primary,
-    showSeconds: Boolean = true,
-    subLabel: String = "STANDBY"
+    showSeconds: Boolean = true
 ) {
-    val numberPaint = remember {
-        Paint().apply {
-            color = android.graphics.Color.WHITE
-            textAlign = Paint.Align.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            isAntiAlias = true
+    // 120Hz/60Hz high-frequency frame loop for mechanical smooth gliding sweep
+    val currentMillis by produceState(initialValue = System.currentTimeMillis()) {
+        while (true) {
+            withFrameMillis {
+                value = System.currentTimeMillis()
+            }
         }
     }
 
-    val subLabelPaint = remember {
+    val numberPaint = remember {
         Paint().apply {
+            color = android.graphics.Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
@@ -79,7 +82,7 @@ fun AnalogClock(
             )
         }
 
-        // 2. Draw 1-12 Hour Numerals in bold, rounded font inside the ticks
+        // 2. Draw 1-12 Hour Numerals in bold font inside ticks (plain dial, no extra text)
         val numberRadius = radius * 0.72f
         numberPaint.textSize = radius * 0.17f
 
@@ -96,24 +99,19 @@ fun AnalogClock(
             )
         }
 
-        // 3. Draw Sub-label (e.g. "STANDBY") below 12
-        subLabelPaint.color = Color.White.copy(alpha = 0.5f).toArgb()
-        subLabelPaint.textSize = radius * 0.11f
-        drawContext.canvas.nativeCanvas.drawText(
-            subLabel,
-            center.x,
-            center.y - radius * 0.32f,
-            subLabelPaint
-        )
+        // 3. High-precision continuous time calculations (mechanical watch glide)
+        val calendar = Calendar.getInstance().apply { timeInMillis = currentMillis }
+        val hour = calendar.get(Calendar.HOUR)
+        val minute = calendar.get(Calendar.MINUTE)
+        val second = calendar.get(Calendar.SECOND)
+        val millis = calendar.get(Calendar.MILLISECOND)
 
-        // Time values
-        val hour = time.hour % 12
-        val minute = time.minute
-        val second = time.second
-        val nano = time.nano
+        val continuousSeconds = second + millis / 1000f
+        val continuousMinutes = minute + continuousSeconds / 60f
+        val continuousHours = hour + continuousMinutes / 60f
 
         // 4. Hour Hand (bold white pill)
-        val hourAngle = (hour + minute / 60f) * 30f
+        val hourAngle = continuousHours * 30f
         rotate(hourAngle, center) {
             drawLine(
                 color = Color.White,
@@ -125,7 +123,7 @@ fun AnalogClock(
         }
 
         // 5. Minute Hand (sleek white pill)
-        val minuteAngle = (minute + second / 60f) * 6f
+        val minuteAngle = continuousMinutes * 6f
         rotate(minuteAngle, center) {
             drawLine(
                 color = Color.White,
@@ -143,9 +141,9 @@ fun AnalogClock(
             center = center
         )
 
-        // 6. Second Hand (accent colored needle with tail and center pivot cap)
+        // 6. Mechanical Sweeping Second Hand (silky smooth glide, high frequency)
         if (showSeconds) {
-            val secondAngle = (second + nano / 1_000_000_000f) * 6f
+            val secondAngle = continuousSeconds * 6f
             rotate(secondAngle, center) {
                 drawLine(
                     color = accentColor,

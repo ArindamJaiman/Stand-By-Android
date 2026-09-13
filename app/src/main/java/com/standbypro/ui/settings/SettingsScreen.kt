@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import com.standbypro.settings.ClockStyle
 import com.standbypro.theme.StandByAccent
 import com.standbypro.theme.StandByBackground
+import kotlin.math.roundToInt
 import com.standbypro.theme.StandByNightRed
 import com.standbypro.theme.StandByOnSurfaceDim
 import com.standbypro.theme.StandBySurface
@@ -369,11 +370,10 @@ fun SettingsScreen(
                                         color = Color.White
                                     )
                                     Text(
-                                        text = when {
-                                            settings.brightnessLevel <= 0.02f -> "Most Dim (1% — Candlelight Bedside)"
-                                            settings.brightnessLevel <= 0.15f -> "Low Dim (10% Bedside)"
-                                            settings.brightnessLevel <= 0.50f -> "Balanced (40% Ambient)"
-                                            else -> "Max Brightness (100%)"
+                                        text = if (settings.brightnessLevel <= 0.02f) {
+                                            "Most Dim (1% — Candlelight Bedside)"
+                                        } else {
+                                            "${(settings.brightnessLevel * 100).roundToInt()}% Brightness"
                                         },
                                         fontSize = 12.sp,
                                         color = if (settings.brightnessLevel <= 0.02f) StandByAccent else StandByOnSurfaceDim
@@ -400,29 +400,41 @@ fun SettingsScreen(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             BrightnessPresetChip(
                                 label = "🌙 Most Dim",
                                 isSelected = settings.brightnessLevel <= 0.02f,
                                 onClick = { viewModel.setBrightnessLevel(0.01f) },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1.3f)
                             )
                             BrightnessPresetChip(
-                                label = "🛋️ Bedside",
-                                isSelected = settings.brightnessLevel in 0.03f..0.15f,
+                                label = "10%",
+                                isSelected = settings.brightnessLevel in 0.08f..0.14f,
                                 onClick = { viewModel.setBrightnessLevel(0.10f) },
                                 modifier = Modifier.weight(1f)
                             )
                             BrightnessPresetChip(
-                                label = "☀️ Normal",
-                                isSelected = settings.brightnessLevel in 0.16f..0.60f,
-                                onClick = { viewModel.setBrightnessLevel(0.40f) },
+                                label = "20%",
+                                isSelected = settings.brightnessLevel in 0.18f..0.24f,
+                                onClick = { viewModel.setBrightnessLevel(0.20f) },
                                 modifier = Modifier.weight(1f)
                             )
                             BrightnessPresetChip(
-                                label = "⚡ Max",
-                                isSelected = settings.brightnessLevel > 0.60f,
+                                label = "30%",
+                                isSelected = settings.brightnessLevel in 0.28f..0.34f,
+                                onClick = { viewModel.setBrightnessLevel(0.30f) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            BrightnessPresetChip(
+                                label = "50%",
+                                isSelected = settings.brightnessLevel in 0.45f..0.55f,
+                                onClick = { viewModel.setBrightnessLevel(0.50f) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            BrightnessPresetChip(
+                                label = "100%",
+                                isSelected = settings.brightnessLevel >= 0.95f,
                                 onClick = { viewModel.setBrightnessLevel(1.00f) },
                                 modifier = Modifier.weight(1f)
                             )

@@ -306,12 +306,21 @@ fun StandByScreen(
                             .background(if (settings.brightnessLevel <= 0.02f) animatedAccent.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.12f))
                             .clickable {
                                 viewModel.reportInteraction()
-                                // Cycle through brightness notches: Most Dim (1%) -> Bedside (10%) -> Normal (40%) -> Max (100%)
+                                // Cycle through brightness notches in steps of 10%:
+                                // Most Dim (1%) -> 10% -> 20% -> 30% -> 40% -> 50% -> 60% -> 70% -> 80% -> 90% -> 100% -> Most Dim
+                                val current = settings.brightnessLevel
                                 val nextBrightness = when {
-                                    settings.brightnessLevel < 0.03f -> 0.10f
-                                    settings.brightnessLevel < 0.18f -> 0.40f
-                                    settings.brightnessLevel < 0.60f -> 1.00f
-                                    else -> 0.01f // Most Dim preset!
+                                    current < 0.05f -> 0.10f
+                                    current < 0.15f -> 0.20f
+                                    current < 0.25f -> 0.30f
+                                    current < 0.35f -> 0.40f
+                                    current < 0.45f -> 0.50f
+                                    current < 0.55f -> 0.60f
+                                    current < 0.65f -> 0.70f
+                                    current < 0.75f -> 0.80f
+                                    current < 0.85f -> 0.90f
+                                    current < 0.95f -> 1.00f
+                                    else -> 0.01f // Wrap back to Most Dim
                                 }
                                 viewModel.setBrightnessLevel(nextBrightness)
                             }
