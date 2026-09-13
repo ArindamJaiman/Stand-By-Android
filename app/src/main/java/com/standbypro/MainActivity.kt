@@ -15,6 +15,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -82,6 +84,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+            val settings by viewModel.settings.collectAsState()
+
+            androidx.compose.runtime.LaunchedEffect(isStandByActive, settings.brightnessLevel) {
+                val lp = window.attributes
+                if (isStandByActive) {
+                    lp.screenBrightness = settings.brightnessLevel.coerceIn(0.01f, 1.0f)
+                } else {
+                    lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                }
+                window.attributes = lp
+            }
+
             StandByProTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),

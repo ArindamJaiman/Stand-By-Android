@@ -23,6 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.BrightnessLow
+import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
@@ -40,6 +42,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -336,6 +340,97 @@ fun SettingsScreen(
                 }
             }
 
+            // Brightness Notch Section
+            item {
+                SettingsCategoryTitle("STANDBY BRIGHTNESS & BED-SIDE NOTCH")
+            }
+
+            item {
+                SettingsCard {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (settings.brightnessLevel <= 0.02f) Icons.Default.BrightnessLow else Icons.Default.BrightnessMedium,
+                                    contentDescription = null,
+                                    tint = StandByAccent,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(
+                                        text = "Bedside Brightness Notch",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = when {
+                                            settings.brightnessLevel <= 0.02f -> "Most Dim (1% — Candlelight Bedside)"
+                                            settings.brightnessLevel <= 0.15f -> "Low Dim (10% Bedside)"
+                                            settings.brightnessLevel <= 0.50f -> "Balanced (40% Ambient)"
+                                            else -> "Max Brightness (100%)"
+                                        },
+                                        fontSize = 12.sp,
+                                        color = if (settings.brightnessLevel <= 0.02f) StandByAccent else StandByOnSurfaceDim
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Slider(
+                            value = settings.brightnessLevel,
+                            onValueChange = { viewModel.setBrightnessLevel(it) },
+                            valueRange = 0.01f..1.0f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = StandByAccent,
+                                activeTrackColor = StandByAccent,
+                                inactiveTrackColor = StandBySurfaceVariant
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            BrightnessPresetChip(
+                                label = "🌙 Most Dim",
+                                isSelected = settings.brightnessLevel <= 0.02f,
+                                onClick = { viewModel.setBrightnessLevel(0.01f) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            BrightnessPresetChip(
+                                label = "🛋️ Bedside",
+                                isSelected = settings.brightnessLevel in 0.03f..0.15f,
+                                onClick = { viewModel.setBrightnessLevel(0.10f) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            BrightnessPresetChip(
+                                label = "☀️ Normal",
+                                isSelected = settings.brightnessLevel in 0.16f..0.60f,
+                                onClick = { viewModel.setBrightnessLevel(0.40f) },
+                                modifier = Modifier.weight(1f)
+                            )
+                            BrightnessPresetChip(
+                                label = "⚡ Max",
+                                isSelected = settings.brightnessLevel > 0.60f,
+                                onClick = { viewModel.setBrightnessLevel(1.00f) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
             // About & Socials
             item {
                 SettingsCategoryTitle("ABOUT & DEVELOPER")
@@ -513,6 +608,30 @@ private fun SocialButton(
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             color = StandByAccent
+        )
+    }
+}
+
+@Composable
+private fun BrightnessPresetChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isSelected) StandByAccent else StandBySurfaceVariant)
+            .clickable { onClick() }
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) Color.Black else Color.White
         )
     }
 }

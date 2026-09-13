@@ -27,6 +27,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val USE_24_HOUR = booleanPreferencesKey("use_24_hour")
         val SHOW_SECONDS = booleanPreferencesKey("show_seconds")
         val CLOCK_STYLE = stringPreferencesKey("clock_style")
+        val BRIGHTNESS_LEVEL = androidx.datastore.preferences.core.floatPreferencesKey("brightness_level")
     }
 
     val settingsFlow: Flow<StandBySettings> = dataStore.data
@@ -54,7 +55,8 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 burnInProtectionEnabled = preferences[PreferencesKeys.BURN_IN_PROTECTION_ENABLED] ?: true,
                 use24Hour = preferences[PreferencesKeys.USE_24_HOUR] ?: false,
                 showSeconds = preferences[PreferencesKeys.SHOW_SECONDS] ?: false,
-                clockStyle = clockStyle
+                clockStyle = clockStyle,
+                brightnessLevel = preferences[PreferencesKeys.BRIGHTNESS_LEVEL] ?: 0.05f
             )
         }
 
@@ -109,6 +111,12 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setClockStyle(clockStyle: ClockStyle) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.CLOCK_STYLE] = clockStyle.name
+        }
+    }
+
+    suspend fun setBrightnessLevel(brightness: Float) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BRIGHTNESS_LEVEL] = brightness.coerceIn(0.01f, 1.0f)
         }
     }
 }

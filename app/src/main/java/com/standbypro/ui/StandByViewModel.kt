@@ -127,4 +127,8 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     fun setClockStyle(clockStyle: ClockStyle) {
         viewModelScope.launch { settingsRepository.setClockStyle(clockStyle) }
     }
+
+    fun setBrightnessLevel(brightness: Float) {
+        viewModelScope.launch { settingsRepository.setBrightnessLevel(brightness) }
+    }
 }

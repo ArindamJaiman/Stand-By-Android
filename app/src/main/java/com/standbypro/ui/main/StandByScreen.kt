@@ -29,6 +29,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.BatteryFull
+import androidx.compose.material.icons.filled.BrightnessLow
+import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material3.Card
@@ -269,7 +271,7 @@ fun StandByScreen(
                 }
             }
 
-            // Top-left Exit Button
+            // Top Bar: Exit Button & Brightness Notch & Night Mode
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -292,30 +294,79 @@ fun StandByScreen(
                     )
                 }
 
-                if (activeNightMode) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Interactive Brightness Notch Button
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(StandByNightRed.copy(alpha = 0.2f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (settings.brightnessLevel <= 0.02f) animatedAccent.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.12f))
+                            .clickable {
+                                viewModel.reportInteraction()
+                                // Cycle through brightness notches: Most Dim (1%) -> Bedside (10%) -> Normal (40%) -> Max (100%)
+                                val nextBrightness = when {
+                                    settings.brightnessLevel < 0.03f -> 0.10f
+                                    settings.brightnessLevel < 0.18f -> 0.40f
+                                    settings.brightnessLevel < 0.60f -> 1.00f
+                                    else -> 0.01f // Most Dim preset!
+                                }
+                                viewModel.setBrightnessLevel(nextBrightness)
+                            }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.NightsStay,
-                            contentDescription = null,
-                            tint = StandByNightRed,
-                            modifier = Modifier.size(14.dp)
+                            imageVector = if (settings.brightnessLevel <= 0.02f) Icons.Default.BrightnessLow else Icons.Default.BrightnessMedium,
+                            contentDescription = "Brightness Notch",
+                            tint = if (settings.brightnessLevel <= 0.02f) animatedAccent else Color.White,
+                            modifier = Modifier.size(16.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
-                            text = "NIGHT MODE",
-                            fontSize = 10.sp,
+                            text = if (settings.brightnessLevel <= 0.02f) "MOST DIM" else "${(settings.brightnessLevel * 100).roundToInt()}%",
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = StandByNightRed
+                            color = if (settings.brightnessLevel <= 0.02f) animatedAccent else Color.White
                         )
+                    }
+
+                    if (activeNightMode) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(StandByNightRed.copy(alpha = 0.2f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NightsStay,
+                                contentDescription = null,
+                                tint = StandByNightRed,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "NIGHT MODE",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = StandByNightRed
+                            )
+                        }
                     }
                 }
             }
+        }
+
+        // Extra Dim filter for pitch-dark bedrooms below hardware limit
+        if (settings.brightnessLevel <= 0.02f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(0.35f)
+                    .background(Color.Black)
+            )
         }
 
         // Auto-Dim overlay
