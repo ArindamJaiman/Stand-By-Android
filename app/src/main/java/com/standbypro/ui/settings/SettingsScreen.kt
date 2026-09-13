@@ -393,10 +393,10 @@ fun SettingsScreen(
                 SettingsCard {
                     SettingToggleItem(
                         icon = Icons.Default.Bedtime,
-                        title = "Night Mode (Red Glow)",
-                        subtitle = "Shifts colors to warm dark red in low light using ambient light sensor",
-                        checked = settings.nightModeEnabled,
-                        onCheckedChange = { viewModel.setNightModeEnabled(it) }
+                        title = "Inactivity Auto-Dim & Grey Shift",
+                        subtitle = "Transition to subtle grey and dim after 30s of inactivity. Turn off to keep vibrant colors permanently.",
+                        checked = settings.autoDimEnabled,
+                        onCheckedChange = { viewModel.setAutoDimEnabled(it) }
                     )
                     HorizontalDivider(color = StandBySurfaceVariant, thickness = 1.dp)
                     SettingToggleItem(
@@ -405,6 +405,14 @@ fun SettingsScreen(
                         subtitle = "Applies micro pixel shifting to preserve OLED & AMOLED panels",
                         checked = settings.burnInProtectionEnabled,
                         onCheckedChange = { viewModel.setBurnInProtectionEnabled(it) }
+                    )
+                    HorizontalDivider(color = StandBySurfaceVariant, thickness = 1.dp)
+                    SettingToggleItem(
+                        icon = Icons.Default.DarkMode,
+                        title = "Night Mode (Red Glow)",
+                        subtitle = "Shifts colors to warm dark red in low light using ambient light sensor",
+                        checked = settings.nightModeEnabled,
+                        onCheckedChange = { viewModel.setNightModeEnabled(it) }
                     )
                 }
             }

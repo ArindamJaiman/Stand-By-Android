@@ -97,9 +97,11 @@ fun StandByScreen(
     // Right widget style toggle
     var activeRightWidget by remember { mutableStateOf(RightWidgetType.CALENDAR) }
 
+    val effectiveDimmed = settings.autoDimEnabled && isDimmed
+
     // Colors: User's chosen palette theme is strictly honored and never forced to red
     val targetAccent = when {
-        isDimmed -> Color.Gray
+        effectiveDimmed -> Color.Gray
         activeNightMode && settings.colorThemeId.equals("red", ignoreCase = true) -> StandByNightRed
         else -> settings.activeColorTheme.color
     }
@@ -111,7 +113,7 @@ fun StandByScreen(
     )
 
     val dimAlpha by animateFloatAsState(
-        targetValue = if (isDimmed) 0.65f else 0.0f,
+        targetValue = if (effectiveDimmed) 0.65f else 0.0f,
         animationSpec = tween(durationMillis = 1000),
         label = "DimOverlayAlpha"
     )

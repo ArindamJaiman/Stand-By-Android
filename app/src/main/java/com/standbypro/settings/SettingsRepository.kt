@@ -29,6 +29,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val CLOCK_STYLE = stringPreferencesKey("clock_style")
         val BRIGHTNESS_LEVEL = androidx.datastore.preferences.core.floatPreferencesKey("brightness_level")
         val COLOR_THEME_ID = stringPreferencesKey("color_theme_id")
+        val AUTO_DIM_ENABLED = booleanPreferencesKey("auto_dim_enabled")
     }
 
     val settingsFlow: Flow<StandBySettings> = dataStore.data
@@ -54,6 +55,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 requireScreenLocked = preferences[PreferencesKeys.REQUIRE_SCREEN_LOCKED] ?: true,
                 nightModeEnabled = preferences[PreferencesKeys.NIGHT_MODE_ENABLED] ?: false,
                 burnInProtectionEnabled = preferences[PreferencesKeys.BURN_IN_PROTECTION_ENABLED] ?: true,
+                autoDimEnabled = preferences[PreferencesKeys.AUTO_DIM_ENABLED] ?: true,
                 use24Hour = preferences[PreferencesKeys.USE_24_HOUR] ?: false,
                 showSeconds = preferences[PreferencesKeys.SHOW_SECONDS] ?: false,
                 clockStyle = clockStyle,
@@ -125,6 +127,12 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setColorTheme(colorThemeId: String) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.COLOR_THEME_ID] = colorThemeId
+        }
+    }
+
+    suspend fun setAutoDimEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AUTO_DIM_ENABLED] = enabled
         }
     }
 }

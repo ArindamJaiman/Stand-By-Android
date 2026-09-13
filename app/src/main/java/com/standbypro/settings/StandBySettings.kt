@@ -35,6 +35,7 @@ data class StandBySettings(
     val requireScreenLocked: Boolean = true,
     val nightModeEnabled: Boolean = false,
     val burnInProtectionEnabled: Boolean = true,
+    val autoDimEnabled: Boolean = true,
     val use24Hour: Boolean = false,
     val showSeconds: Boolean = false,
     val clockStyle: ClockStyle = ClockStyle.DIGITAL,

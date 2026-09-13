@@ -135,4 +135,8 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     fun setColorTheme(colorThemeId: String) {
         viewModelScope.launch { settingsRepository.setColorTheme(colorThemeId) }
     }
+
+    fun setAutoDimEnabled(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setAutoDimEnabled(enabled) }
+    }
 }
