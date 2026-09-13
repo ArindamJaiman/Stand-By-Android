@@ -97,10 +97,10 @@ fun StandByScreen(
     // Right widget style toggle
     var activeRightWidget by remember { mutableStateOf(RightWidgetType.CALENDAR) }
 
-    // Colors
+    // Colors: User's chosen palette theme is strictly honored and never forced to red
     val targetAccent = when {
-        activeNightMode -> StandByNightRed
         isDimmed -> Color.Gray
+        activeNightMode && settings.colorThemeId.equals("red", ignoreCase = true) -> StandByNightRed
         else -> settings.activeColorTheme.color
     }
 
@@ -461,12 +461,12 @@ private fun SmartWidgetsPanel(
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Date Card
+        // Date & Day Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isNightMode) Color(0xFF1A0505) else Color(0xFF141414)
+                containerColor = Color(0xFF141414)
             )
         ) {
             Row(
@@ -494,7 +494,7 @@ private fun SmartWidgetsPanel(
                         text = time.format(fullDateFormatter),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (isNightMode) StandByNightRed else Color.White
+                        color = Color.White
                     )
                 }
             }
@@ -505,7 +505,7 @@ private fun SmartWidgetsPanel(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isNightMode) Color(0xFF1A0505) else Color(0xFF141414)
+                containerColor = Color(0xFF141414)
             )
         ) {
             Row(
@@ -535,7 +535,7 @@ private fun SmartWidgetsPanel(
                             text = if (chargingState.isCharging) "Charging (${chargingState.chargeType})" else "On Battery",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (isNightMode) StandByNightRed else Color.White
+                            color = Color.White
                         )
                     }
                 }
@@ -556,7 +556,7 @@ private fun SmartWidgetsPanel(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isNightMode) Color(0xFF1A0505) else Color(0xFF141414)
+                    containerColor = Color(0xFF141414)
                 )
             ) {
                 Row(
@@ -584,7 +584,7 @@ private fun SmartWidgetsPanel(
                             text = nextAlarm,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isNightMode) StandByNightRed else Color.White
+                            color = Color.White
                         )
                     }
                 }

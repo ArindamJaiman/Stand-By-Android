@@ -14,6 +14,7 @@ import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
@@ -102,6 +103,7 @@ fun AnalogClock(
         // 3. High-precision continuous time calculations (mechanical watch glide)
         val calendar = Calendar.getInstance().apply { timeInMillis = currentMillis }
         val hour = calendar.get(Calendar.HOUR)
+        val hourOfDay = calendar.get(Calendar.HOUR_OF_DAY) // 0..23 for GMT 24-hour cycle
         val minute = calendar.get(Calendar.MINUTE)
         val second = calendar.get(Calendar.SECOND)
         val millis = calendar.get(Calendar.MILLISECOND)
@@ -109,8 +111,41 @@ fun AnalogClock(
         val continuousSeconds = second + millis / 1000f
         val continuousMinutes = minute + continuousSeconds / 60f
         val continuousHours = hour + continuousMinutes / 60f
+        val continuousGmtHours = hourOfDay + continuousMinutes / 60f
 
-        // 4. Hour Hand (bold white pill)
+        // 4. GMT Hand (24-Hour Arrow Complication)
+        // Sweeps through a 24-hour cycle (15° per hour) with a signature luxury arrowhead
+        val gmtAngle = continuousGmtHours * 15f
+        rotate(gmtAngle, center) {
+            val stemEnd = center.y - radius * 0.64f
+            val arrowTip = center.y - radius * 0.78f
+            val arrowHalfWidth = radius * 0.040f
+
+            // Slender GMT stem in accent color
+            drawLine(
+                color = accentColor.copy(alpha = 0.85f),
+                start = center,
+                end = Offset(center.x, stemEnd),
+                strokeWidth = 2.8f,
+                cap = StrokeCap.Round
+            )
+
+            // Distinctive arrowhead pointer
+            val arrowPath = Path().apply {
+                moveTo(center.x, arrowTip)
+                lineTo(center.x + arrowHalfWidth, stemEnd)
+                lineTo(center.x, stemEnd + radius * 0.015f)
+                lineTo(center.x - arrowHalfWidth, stemEnd)
+                close()
+            }
+
+            drawPath(
+                path = arrowPath,
+                color = accentColor
+            )
+        }
+
+        // 5. Hour Hand (bold white pill)
         val hourAngle = continuousHours * 30f
         rotate(hourAngle, center) {
             drawLine(
@@ -122,7 +157,7 @@ fun AnalogClock(
             )
         }
 
-        // 5. Minute Hand (sleek white pill)
+        // 6. Minute Hand (sleek white pill)
         val minuteAngle = continuousMinutes * 6f
         rotate(minuteAngle, center) {
             drawLine(
@@ -141,7 +176,7 @@ fun AnalogClock(
             center = center
         )
 
-        // 6. Mechanical Sweeping Second Hand (silky smooth glide, high frequency)
+        // 7. Mechanical Sweeping Second Hand (silky smooth glide, high frequency)
         if (showSeconds) {
             val secondAngle = continuousSeconds * 6f
             rotate(secondAngle, center) {

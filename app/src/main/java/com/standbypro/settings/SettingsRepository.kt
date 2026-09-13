@@ -52,7 +52,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 autoStartWhileCharging = preferences[PreferencesKeys.AUTO_START] ?: true,
                 requireLandscape = preferences[PreferencesKeys.REQUIRE_LANDSCAPE] ?: true,
                 requireScreenLocked = preferences[PreferencesKeys.REQUIRE_SCREEN_LOCKED] ?: true,
-                nightModeEnabled = preferences[PreferencesKeys.NIGHT_MODE_ENABLED] ?: true,
+                nightModeEnabled = preferences[PreferencesKeys.NIGHT_MODE_ENABLED] ?: false,
                 burnInProtectionEnabled = preferences[PreferencesKeys.BURN_IN_PROTECTION_ENABLED] ?: true,
                 use24Hour = preferences[PreferencesKeys.USE_24_HOUR] ?: false,
                 showSeconds = preferences[PreferencesKeys.SHOW_SECONDS] ?: false,

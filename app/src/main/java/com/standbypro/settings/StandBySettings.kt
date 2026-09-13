@@ -33,7 +33,7 @@ data class StandBySettings(
     val autoStartWhileCharging: Boolean = true,
     val requireLandscape: Boolean = true,
     val requireScreenLocked: Boolean = true,
-    val nightModeEnabled: Boolean = true,
+    val nightModeEnabled: Boolean = false,
     val burnInProtectionEnabled: Boolean = true,
     val use24Hour: Boolean = false,
     val showSeconds: Boolean = false,
