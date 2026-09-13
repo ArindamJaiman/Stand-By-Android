@@ -1,6 +1,7 @@
 package com.standbypro.ui.main
 
 import android.content.res.Configuration
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -9,7 +10,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,15 +29,12 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.BatteryFull
-import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.NightsStay
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -57,16 +54,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.standbypro.domain.ChargingState
 import com.standbypro.settings.ClockStyle
-import com.standbypro.settings.StandBySettings
 import com.standbypro.theme.StandByAccent
 import com.standbypro.theme.StandByNightRed
 import com.standbypro.theme.StandByOnSurfaceDim
 import com.standbypro.ui.StandByViewModel
 import com.standbypro.ui.clock.AnalogClock
 import com.standbypro.ui.clock.DigitalClock
+import com.standbypro.ui.components.MonthCalendarWidget
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+
+enum class RightWidgetType {
+    CALENDAR,
+    CARDS
+}
 
 @Composable
 fun StandByScreen(
@@ -85,14 +87,19 @@ fun StandByScreen(
     // Active night mode state considers setting
     val activeNightMode = settings.nightModeEnabled && isNightModeSensor
 
-    // Local toggle for clock style if user taps clock to switch
-    var activeClockStyle by remember(settings.clockStyle) { mutableStateOf(settings.clockStyle) }
+    // Local toggle for clock style (defaults to ANALOG like iOS StandBy in the reference photo)
+    var activeClockStyle by remember(settings.clockStyle) { 
+        mutableStateOf(if (settings.clockStyle == ClockStyle.DIGITAL) ClockStyle.ANALOG else settings.clockStyle) 
+    }
+
+    // Right widget style toggle
+    var activeRightWidget by remember { mutableStateOf(RightWidgetType.CALENDAR) }
 
     // Colors
     val targetAccent = when {
         activeNightMode -> StandByNightRed
         isDimmed -> Color.Gray
-        else -> StandByAccent
+        else -> Color(0xFFFF9500) // Apple StandBy Warm Orange accent by default
     }
 
     val animatedAccent by animateColorAsState(
@@ -132,18 +139,18 @@ fun StandByScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .offset { appliedBurnInOffset }
-                .padding(16.dp)
+                .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
             if (isLandscape) {
-                // Two-Panel Landscape Layout
+                // Two-Panel Landscape Layout: Left Clock, Right Calendar + Info
                 Row(
                     modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Left Panel: Clock Widget
+                    // Left Panel: Clock Face
                     Box(
                         modifier = Modifier
-                            .weight(1.1f)
+                            .weight(1f)
                             .fillMaxHeight()
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -168,27 +175,52 @@ fun StandByScreen(
                         )
                     }
 
-                    // Divider spacer
-                    Spacer(modifier = Modifier.width(20.dp))
+                    // Spacer between panels
+                    Spacer(modifier = Modifier.width(32.dp))
 
-                    // Right Panel: Smart Info Cards
-                    Column(
+                    // Right Panel: Calendar + Battery + Alarm
+                    Box(
                         modifier = Modifier
-                            .weight(0.9f)
-                            .fillMaxHeight(),
-                        verticalArrangement = Arrangement.Center
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                viewModel.reportInteraction()
+                                activeRightWidget = if (activeRightWidget == RightWidgetType.CALENDAR) {
+                                    RightWidgetType.CARDS
+                                } else {
+                                    RightWidgetType.CALENDAR
+                                }
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
-                        SmartWidgetsPanel(
-                            time = currentTime,
-                            chargingState = chargingState,
-                            accentColor = animatedAccent,
-                            isNightMode = activeNightMode,
-                            nextAlarm = nextAlarm
-                        )
+                        Crossfade(targetState = activeRightWidget, label = "RightWidgetCrossfade") { widgetType ->
+                            when (widgetType) {
+                                RightWidgetType.CALENDAR -> {
+                                    MonthCalendarWidget(
+                                        time = currentTime,
+                                        chargingState = chargingState,
+                                        nextAlarm = nextAlarm,
+                                        accentColor = animatedAccent
+                                    )
+                                }
+                                RightWidgetType.CARDS -> {
+                                    SmartWidgetsPanel(
+                                        time = currentTime,
+                                        chargingState = chargingState,
+                                        accentColor = animatedAccent,
+                                        isNightMode = activeNightMode,
+                                        nextAlarm = nextAlarm
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             } else {
-                // Portrait Layout
+                // Portrait Fallback
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -224,20 +256,20 @@ fun StandByScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f)
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
                     ) {
-                        SmartWidgetsPanel(
+                        MonthCalendarWidget(
                             time = currentTime,
                             chargingState = chargingState,
-                            accentColor = animatedAccent,
-                            isNightMode = activeNightMode,
-                            nextAlarm = nextAlarm
+                            nextAlarm = nextAlarm,
+                            accentColor = animatedAccent
                         )
                     }
                 }
             }
 
-            // Top Bar: Exit / Settings Button
+            // Top-left Exit Button
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -249,14 +281,14 @@ fun StandByScreen(
                     onClick = onExit,
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .size(36.dp)
+                        .background(Color.White.copy(alpha = 0.12f))
+                        .size(34.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Exit StandBy",
-                        tint = animatedAccent.copy(alpha = 0.7f),
-                        modifier = Modifier.size(20.dp)
+                        tint = animatedAccent.copy(alpha = 0.85f),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
 
@@ -265,7 +297,7 @@ fun StandByScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(StandByNightRed.copy(alpha = 0.15f))
+                            .background(StandByNightRed.copy(alpha = 0.2f))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Icon(
@@ -314,7 +346,7 @@ private fun ClockPanel(
         if (clockStyle == ClockStyle.ANALOG) {
             Box(
                 modifier = Modifier
-                    .fillMaxHeight(0.88f)
+                    .fillMaxHeight(0.92f)
                     .aspectRatio(1f),
                 contentAlignment = Alignment.Center
             ) {
@@ -372,20 +404,20 @@ private fun SmartWidgetsPanel(
                     imageVector = Icons.Default.CalendarMonth,
                     contentDescription = null,
                     tint = accentColor,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(30.dp)
                 )
                 Spacer(modifier = Modifier.width(14.dp))
                 Column {
                     Text(
                         text = time.format(dayOfWeekFormatter).uppercase(),
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = accentColor,
                         letterSpacing = 1.2.sp
                     )
                     Text(
                         text = time.format(fullDateFormatter),
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (isNightMode) StandByNightRed else Color.White
                     )
@@ -413,20 +445,20 @@ private fun SmartWidgetsPanel(
                         imageVector = if (chargingState.isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(30.dp)
                     )
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
                             text = "${chargingState.batteryPercent}% BATTERY",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = accentColor,
                             letterSpacing = 1.2.sp
                         )
                         Text(
                             text = if (chargingState.isCharging) "Charging (${chargingState.chargeType})" else "On Battery",
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Medium,
                             color = if (isNightMode) StandByNightRed else Color.White
                         )
@@ -436,14 +468,14 @@ private fun SmartWidgetsPanel(
                 chargingState.temperatureCelsius?.let { temp ->
                     Text(
                         text = "${temp.roundToInt()}°C",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         color = StandByOnSurfaceDim
                     )
                 }
             }
         }
 
-        // Next Alarm or Ambient Status Card
+        // Next Alarm Card
         if (nextAlarm != null) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -462,20 +494,20 @@ private fun SmartWidgetsPanel(
                         imageVector = Icons.Default.Alarm,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(30.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(
                             text = "NEXT ALARM",
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = accentColor,
                             letterSpacing = 1.2.sp
                         )
                         Text(
                             text = nextAlarm,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (isNightMode) StandByNightRed else Color.White
                         )

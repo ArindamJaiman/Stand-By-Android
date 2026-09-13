@@ -143,6 +143,7 @@ class MainActivity : ComponentActivity() {
 
     private fun configureImmersiveStandBy(enable: Boolean) {
         if (enable) {
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
                 setShowWhenLocked(true)
@@ -161,6 +162,7 @@ class MainActivity : ComponentActivity() {
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
         } else {
+            requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
             windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
