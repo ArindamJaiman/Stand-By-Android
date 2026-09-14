@@ -11,6 +11,7 @@ import com.standbypro.domain.ChargingState
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 class ChargingStateMonitor(private val context: Context) {
 
@@ -23,44 +24,71 @@ class ChargingStateMonitor(private val context: Context) {
             }
         }
 
-        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_BATTERY_CHANGED)
+            addAction(Intent.ACTION_POWER_CONNECTED)
+            addAction(Intent.ACTION_POWER_DISCONNECTED)
+        }
         val initialIntent = context.registerReceiver(receiver, filter)
 
         // Send initial state
-        initialIntent?.let {
+        val stickyIntent = initialIntent ?: context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        stickyIntent?.let {
             trySend(getChargingStateFromIntent(it))
         }
 
         awaitClose {
             context.unregisterReceiver(receiver)
         }
-    }
+    }.distinctUntilChanged()
 
     private fun getChargingStateFromIntent(intent: Intent): ChargingState {
-        val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+        val action = intent.action
+        val isExplicitDisconnect = action == Intent.ACTION_POWER_DISCONNECTED
+        val isExplicitConnect = action == Intent.ACTION_POWER_CONNECTED
+
+        val batteryIntent = if (action == Intent.ACTION_BATTERY_CHANGED) {
+            intent
+        } else {
+            context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: intent
+        }
+
+        val chargePlug = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1)
+        val isPlugged = chargePlug == BatteryManager.BATTERY_PLUGGED_USB ||
+                chargePlug == BatteryManager.BATTERY_PLUGGED_AC ||
+                chargePlug == BatteryManager.BATTERY_PLUGGED_WIRELESS ||
+                chargePlug == 8 // Dock
+
+        val status = batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+        val isChargingFromStatus = status == BatteryManager.BATTERY_STATUS_CHARGING ||
                 status == BatteryManager.BATTERY_STATUS_FULL
 
-        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+        val isCharging = when {
+            isExplicitDisconnect -> false
+            isExplicitConnect -> true
+            !isPlugged -> false
+            else -> isChargingFromStatus
+        }
+
+        val level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
         val batteryPercent = if (level != -1 && scale != -1) {
             (level * 100 / scale.toFloat()).toInt()
         } else {
             0
         }
 
-        val chargePlug = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1)
         val chargeType = when (chargePlug) {
             BatteryManager.BATTERY_PLUGGED_USB -> ChargeType.USB
             BatteryManager.BATTERY_PLUGGED_AC -> ChargeType.AC
             BatteryManager.BATTERY_PLUGGED_WIRELESS -> ChargeType.WIRELESS
-            else -> ChargeType.NONE
+            else -> if (isCharging) ChargeType.AC else ChargeType.NONE
         }
 
-        val temperature = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1)
+        val temperature = batteryIntent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1)
         val temperatureCelsius = if (temperature != -1) temperature / 10f else null
 
-        val healthExtra = intent.getIntExtra(BatteryManager.EXTRA_HEALTH, -1)
+        val healthExtra = batteryIntent.getIntExtra(BatteryManager.EXTRA_HEALTH, -1)
         val health = when (healthExtra) {
             BatteryManager.BATTERY_HEALTH_GOOD -> BatteryHealth.GOOD
             BatteryManager.BATTERY_HEALTH_OVERHEAT -> BatteryHealth.OVERHEAT

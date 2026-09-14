@@ -75,6 +75,21 @@ class StandByService : Service() {
         scope.launch {
             chargingMonitor.chargingState.collect { state ->
                 updateChargingWakeLock(state.isCharging)
+                updateNotification(state.isCharging)
+
+                if (!state.isCharging) {
+                    // Instantly exit StandBy display if active and cancel pending exit jobs
+                    exitJob?.cancel()
+                    if (isStandByActive) {
+                        isStandByActive = false
+                        val exitIntent = Intent(ACTION_EXIT_STANDBY).apply {
+                            setPackage(packageName)
+                        }
+                        sendBroadcast(exitIntent)
+                    }
+                    val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notificationManager.cancel(NOTIFICATION_FULLSCREEN_ID)
+                }
             }
         }
 
@@ -90,16 +105,26 @@ class StandByService : Service() {
                         launchStandByActivity()
                     }
                 } else if (isStandByActive) {
-                    // Debounce exit by 1.5 seconds to avoid momentary motion/sensor glitches
-                    exitJob?.cancel()
-                    exitJob = scope.launch {
-                        delay(1500L)
-                        if (standByController.standByState.value != StandByState.STANDBY_ACTIVE) {
-                            isStandByActive = false
-                            val exitIntent = Intent(ACTION_EXIT_STANDBY).apply {
-                                setPackage(packageName)
+                    if (state == StandByState.DISABLED) {
+                        // Unplugged or disabled: Instant exit without debounce delay
+                        exitJob?.cancel()
+                        isStandByActive = false
+                        val exitIntent = Intent(ACTION_EXIT_STANDBY).apply {
+                            setPackage(packageName)
+                        }
+                        sendBroadcast(exitIntent)
+                    } else {
+                        // Still plugged in, but rotated or unlocked: Debounce exit by 1.5s
+                        exitJob?.cancel()
+                        exitJob = scope.launch {
+                            delay(1500L)
+                            if (standByController.standByState.value != StandByState.STANDBY_ACTIVE) {
+                                isStandByActive = false
+                                val exitIntent = Intent(ACTION_EXIT_STANDBY).apply {
+                                    setPackage(packageName)
+                                }
+                                sendBroadcast(exitIntent)
                             }
-                            sendBroadcast(exitIntent)
                         }
                     }
                 }
@@ -131,6 +156,7 @@ class StandByService : Service() {
                     e.printStackTrace()
                 }
             }
+            chargingWakeLock = null
         }
     }
 
@@ -188,14 +214,26 @@ class StandByService : Service() {
         }
     }
 
-    private fun createNotification(): Notification {
+    private fun createNotification(isCharging: Boolean = false): Notification {
+        val title = if (isCharging) "StandBy Pro • Ready" else "StandBy Pro • Hibernating"
+        val text = if (isCharging) {
+            "Charging detected: monitoring screen-off & landscape orientation"
+        } else {
+            "Waiting for charger (0% battery drain)"
+        }
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_charging)
-            .setContentTitle("StandBy Pro is running")
-            .setContentText("Monitoring charging, landscape & lock state")
+            .setContentTitle(title)
+            .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .build()
+    }
+
+    private fun updateNotification(isCharging: Boolean) {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID, createNotification(isCharging))
     }
 
     private fun createNotificationChannels() {

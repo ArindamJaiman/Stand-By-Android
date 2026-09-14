@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+import android.util.Log
+
 class ScreenLockMonitor(private val context: Context) {
 
     private val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
@@ -39,11 +41,9 @@ class ScreenLockMonitor(private val context: Context) {
                         trySend(false)
                     }
                     Intent.ACTION_SCREEN_ON -> {
-                        // If device keyguard is locked, it's definitely locked
-                        if (keyguardManager.isKeyguardLocked) {
-                            isLocked = true
-                            trySend(true)
-                        }
+                        val locked = keyguardManager.isKeyguardLocked
+                        isLocked = locked
+                        trySend(locked)
                     }
                 }
             }
@@ -55,9 +55,11 @@ class ScreenLockMonitor(private val context: Context) {
             addAction(Intent.ACTION_USER_PRESENT)
         }
 
+        Log.i("ScreenLockMonitor", "Registering screen lock receiver (Charging active)")
         context.registerReceiver(receiver, filter)
 
         awaitClose {
+            Log.i("ScreenLockMonitor", "Unregistering screen lock receiver (Entering hibernation)")
             context.unregisterReceiver(receiver)
         }
     }.distinctUntilChanged()

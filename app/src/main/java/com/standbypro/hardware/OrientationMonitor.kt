@@ -10,6 +10,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import android.util.Log
 import kotlin.math.abs
 
 class OrientationMonitor(private val context: Context) {
@@ -42,8 +43,8 @@ class OrientationMonitor(private val context: Context) {
                         // Sideways gravity dominates -> Landscape
                         x > 3.5f && abs(x) > abs(y) * 1.15f -> PhysicalOrientation.LANDSCAPE_LEFT
                         x < -3.5f && abs(x) > abs(y) * 1.15f -> PhysicalOrientation.LANDSCAPE_RIGHT
-                        // Vertical gravity dominates -> Portrait
-                        y > 3.5f && abs(y) > abs(x) * 1.15f -> PhysicalOrientation.PORTRAIT
+                        // Vertical gravity dominates (upright or inverted) -> Portrait
+                        abs(y) > 3.5f && abs(y) > abs(x) * 1.15f -> PhysicalOrientation.PORTRAIT
                         else -> currentOrientation
                     }
 
@@ -58,12 +59,15 @@ class OrientationMonitor(private val context: Context) {
         }
 
         if (accelerometer != null) {
+            Log.i("OrientationMonitor", "Registering accelerometer listener (Charging active)")
             sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
         } else {
+            Log.w("OrientationMonitor", "No accelerometer sensor found on device")
             trySend(PhysicalOrientation.UNKNOWN)
         }
 
         awaitClose {
+            Log.i("OrientationMonitor", "Unregistering accelerometer listener (Entering hibernation)")
             sensorManager.unregisterListener(listener)
         }
     }.distinctUntilChanged()
