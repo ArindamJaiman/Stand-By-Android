@@ -18,8 +18,14 @@ import com.standbypro.settings.ClockStyle
 import com.standbypro.settings.SettingsRepository
 import com.standbypro.settings.StandBySettings
 import com.standbypro.settings.dataStore
+import com.standbypro.data.GitHubContributionsState
+import com.standbypro.data.GitHubRepository
+import com.standbypro.domain.BottomComplicationType
+import com.standbypro.domain.WatchFaceType
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -39,6 +45,26 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = StandBySettings()
         )
+
+    val gitHubContributionsState: StateFlow<GitHubContributionsState> = GitHubRepository.contributionsState
+
+    init {
+        // Automatically fetch/refresh contributions when githubUsername setting changes
+        viewModelScope.launch {
+            settingsRepository.settingsFlow
+                .map { it.githubUsername }
+                .distinctUntilChanged()
+                .collect { username ->
+                    GitHubRepository.fetchContributions(username)
+                }
+        }
+    }
+
+    fun fetchGitHubContributions(username: String, forceRefresh: Boolean = false) {
+        viewModelScope.launch {
+            GitHubRepository.fetchContributions(username, forceRefresh = forceRefresh)
+        }
+    }
 
     val currentTime: StateFlow<LocalDateTime> = ClockEngine.timeFlow(1000L)
         .stateIn(
@@ -138,5 +164,20 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
 
     fun setAutoDimEnabled(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setAutoDimEnabled(enabled) }
+    }
+
+    fun setWatchFaceType(watchFaceType: WatchFaceType) {
+        viewModelScope.launch { settingsRepository.setWatchFaceType(watchFaceType) }
+    }
+
+    fun setBottomComplication(bottomComplication: BottomComplicationType) {
+        viewModelScope.launch { settingsRepository.setBottomComplication(bottomComplication) }
+    }
+
+    fun setGithubUsername(username: String) {
+        viewModelScope.launch {
+            settingsRepository.setGithubUsername(username)
+            GitHubRepository.fetchContributions(username, forceRefresh = true)
+        }
     }
 }

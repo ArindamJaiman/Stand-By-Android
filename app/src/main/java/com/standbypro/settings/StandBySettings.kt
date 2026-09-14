@@ -1,6 +1,8 @@
 package com.standbypro.settings
 
 import androidx.compose.ui.graphics.Color
+import com.standbypro.domain.BottomComplicationType
+import com.standbypro.domain.WatchFaceType
 
 enum class ClockStyle {
     DIGITAL,
@@ -38,9 +40,12 @@ data class StandBySettings(
     val autoDimEnabled: Boolean = true,
     val use24Hour: Boolean = false,
     val showSeconds: Boolean = false,
-    val clockStyle: ClockStyle = ClockStyle.DIGITAL,
+    val clockStyle: ClockStyle = ClockStyle.ANALOG,
     val brightnessLevel: Float = 0.05f,
-    val colorThemeId: String = StandByColorTheme.ORANGE.id
+    val colorThemeId: String = StandByColorTheme.ORANGE.id,
+    val watchFaceType: WatchFaceType = WatchFaceType.GMT_CALENDAR,
+    val bottomComplication: BottomComplicationType = BottomComplicationType.BATTERY,
+    val githubUsername: String = "ArindamJaiman"
 ) {
     val activeColorTheme: StandByColorTheme
         get() = StandByColorTheme.fromId(colorThemeId)

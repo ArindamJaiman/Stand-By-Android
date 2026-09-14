@@ -67,6 +67,9 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
+import com.standbypro.domain.BottomComplicationType
+import com.standbypro.domain.WatchFaceType
+
 enum class RightWidgetType {
     CALENDAR,
     CARDS
@@ -84,14 +87,17 @@ fun StandByScreen(
     val isDimmed by viewModel.isDimmed.collectAsState()
     val burnInOffset by viewModel.burnInOffset.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    val gitHubState by viewModel.gitHubContributionsState.collectAsState()
     val nextAlarm = remember(currentTime.minute) { viewModel.getNextAlarm() }
 
     // Active night mode state considers setting
     val activeNightMode = settings.nightModeEnabled && isNightModeSensor
 
-    // Local toggle for clock style (defaults to ANALOG like iOS StandBy in the reference photo)
-    var activeClockStyle by remember(settings.clockStyle) { 
-        mutableStateOf(if (settings.clockStyle == ClockStyle.DIGITAL) ClockStyle.ANALOG else settings.clockStyle) 
+    // Clock style follows watchFaceType (defaults to ANALOG with mechanical GMT)
+    var activeClockStyle by remember(settings.clockStyle, settings.watchFaceType) { 
+        mutableStateOf(
+            if (settings.watchFaceType == WatchFaceType.DIGITAL_CALENDAR) ClockStyle.DIGITAL else ClockStyle.ANALOG
+        ) 
     }
 
     // Right widget style toggle
@@ -207,7 +213,18 @@ fun StandByScreen(
                                         time = currentTime,
                                         chargingState = chargingState,
                                         nextAlarm = nextAlarm,
-                                        accentColor = animatedAccent
+                                        accentColor = animatedAccent,
+                                        bottomComplication = settings.bottomComplication,
+                                        gitHubState = gitHubState,
+                                        onCycleComplication = {
+                                            viewModel.reportInteraction()
+                                            val next = when (settings.bottomComplication) {
+                                                BottomComplicationType.BATTERY -> BottomComplicationType.GITHUB_GRAPH
+                                                BottomComplicationType.GITHUB_GRAPH -> BottomComplicationType.ALARM
+                                                BottomComplicationType.ALARM -> BottomComplicationType.BATTERY
+                                            }
+                                            viewModel.setBottomComplication(next)
+                                        }
                                     )
                                 }
                                 RightWidgetType.CARDS -> {
@@ -267,7 +284,18 @@ fun StandByScreen(
                             time = currentTime,
                             chargingState = chargingState,
                             nextAlarm = nextAlarm,
-                            accentColor = animatedAccent
+                            accentColor = animatedAccent,
+                            bottomComplication = settings.bottomComplication,
+                            gitHubState = gitHubState,
+                            onCycleComplication = {
+                                viewModel.reportInteraction()
+                                val next = when (settings.bottomComplication) {
+                                    BottomComplicationType.BATTERY -> BottomComplicationType.GITHUB_GRAPH
+                                    BottomComplicationType.GITHUB_GRAPH -> BottomComplicationType.ALARM
+                                    BottomComplicationType.ALARM -> BottomComplicationType.BATTERY
+                                }
+                                viewModel.setBottomComplication(next)
+                            }
                         )
                     }
                 }

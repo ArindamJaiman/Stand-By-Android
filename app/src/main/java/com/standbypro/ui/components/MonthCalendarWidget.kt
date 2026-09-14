@@ -28,6 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.NotificationsActive
+import com.standbypro.data.GitHubContributionsState
+import com.standbypro.domain.BottomComplicationType
 import com.standbypro.domain.ChargingState
 import java.time.LocalDateTime
 import java.time.YearMonth
@@ -40,7 +44,10 @@ fun MonthCalendarWidget(
     chargingState: ChargingState,
     nextAlarm: String?,
     accentColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    bottomComplication: BottomComplicationType = BottomComplicationType.BATTERY,
+    gitHubState: GitHubContributionsState? = null,
+    onCycleComplication: (() -> Unit)? = null
 ) {
     val yearMonth = YearMonth.from(time)
     val firstOfMonth = yearMonth.atDay(1)
@@ -149,58 +156,133 @@ fun MonthCalendarWidget(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // 4. Sleek Battery & Alarm Info Row
-        Row(
+        // 4. Dynamic Complication Slot (Clickable to cycle complications)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.White.copy(alpha = 0.08f))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .clickable(enabled = onCycleComplication != null) {
+                    onCycleComplication?.invoke()
+                }
         ) {
-            // Battery Status
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (chargingState.isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "${chargingState.batteryPercent}%${if (chargingState.isCharging) " Charging" else ""}",
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                chargingState.temperatureCelsius?.let { temp ->
-                    Text(
-                        text = " • ${temp.roundToInt()}°C",
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 11.sp
-                    )
+            when (bottomComplication) {
+                BottomComplicationType.GITHUB_GRAPH -> {
+                    if (gitHubState != null) {
+                        GitHubContributionWidget(
+                            state = gitHubState,
+                            accentColor = accentColor,
+                            isCompact = true
+                        )
+                    } else {
+                        DefaultBatteryRow(chargingState, nextAlarm, accentColor)
+                    }
+                }
+                BottomComplicationType.ALARM -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.08f))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Alarm,
+                                contentDescription = null,
+                                tint = accentColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "NEXT SCHEDULED ALARM",
+                                    color = accentColor,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                )
+                                Text(
+                                    text = nextAlarm ?: "No upcoming alarms",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.NotificationsActive,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                BottomComplicationType.BATTERY -> {
+                    DefaultBatteryRow(chargingState, nextAlarm, accentColor)
                 }
             }
+        }
+    }
+}
 
-            // Next Alarm Status
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Alarm,
-                    contentDescription = null,
-                    tint = accentColor,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(5.dp))
+@Composable
+private fun DefaultBatteryRow(
+    chargingState: ChargingState,
+    nextAlarm: String?,
+    accentColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.08f))
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Battery Status
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = if (chargingState.isCharging) Icons.Default.BatteryChargingFull else Icons.Default.BatteryFull,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "${chargingState.batteryPercent}%${if (chargingState.isCharging) " Charging" else ""}",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            chargingState.temperatureCelsius?.let { temp ->
                 Text(
-                    text = nextAlarm ?: "No Alarm",
-                    color = Color.White.copy(alpha = 0.85f),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    text = " • ${temp.roundToInt()}°C",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 11.sp
                 )
             }
+        }
+
+        // Next Alarm Status
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.Alarm,
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = nextAlarm ?: "No Alarm",
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }

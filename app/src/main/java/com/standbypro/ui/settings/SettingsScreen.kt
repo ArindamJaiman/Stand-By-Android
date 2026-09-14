@@ -37,14 +37,20 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
@@ -54,10 +60,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.standbypro.data.GitHubContributionsState
+import com.standbypro.domain.BottomComplicationType
+import com.standbypro.domain.ChargingState
+import com.standbypro.domain.WatchFaceType
+import com.standbypro.settings.StandBySettings
+import com.standbypro.ui.clock.AnalogClock
+import com.standbypro.ui.clock.DigitalClock
+import com.standbypro.ui.components.MonthCalendarWidget
+import java.time.LocalDateTime
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -82,6 +100,9 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsState()
     val chargingState by viewModel.chargingState.collectAsState()
+    val gitHubState by viewModel.gitHubContributionsState.collectAsState()
+    val currentTime by viewModel.currentTime.collectAsState()
+    val nextAlarm = remember(currentTime.minute) { viewModel.getNextAlarm() }
     val context = LocalContext.current
 
     Surface(
@@ -132,50 +153,21 @@ fun SettingsScreen(
                 }
             }
 
-            // Preview Card
+            // WATCH FACE & COMPLICATION STUDIO (with Live Miniature Preview)
             item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = StandBySurfaceVariant)
-                ) {
-                    Column(modifier = Modifier.padding(18.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = null,
-                                tint = StandByAccent,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "Preview Ambient Display",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Test the full-screen StandBy experience immediately",
-                                    fontSize = 13.sp,
-                                    color = StandByOnSurfaceDim
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Button(
-                            onClick = onLaunchPreview,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = StandByAccent,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            Text("Launch StandBy Now", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
+                SettingsCategoryTitle("WATCH FACE & COMPLICATIONS STUDIO", color = settings.activeColorTheme.color)
+            }
+
+            item {
+                WatchFaceStudioCard(
+                    viewModel = viewModel,
+                    settings = settings,
+                    chargingState = chargingState,
+                    gitHubState = gitHubState,
+                    currentTime = currentTime,
+                    nextAlarm = nextAlarm,
+                    onLaunchPreview = onLaunchPreview
+                )
             }
 
             // Hardware Status Pill
@@ -776,6 +768,528 @@ private fun ColorThemeChoiceCard(
                     modifier = Modifier.size(16.dp)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun WatchFaceStudioCard(
+    viewModel: StandByViewModel,
+    settings: StandBySettings,
+    chargingState: ChargingState,
+    gitHubState: GitHubContributionsState,
+    currentTime: LocalDateTime,
+    nextAlarm: String?,
+    onLaunchPreview: () -> Unit
+) {
+    val activeAccent = settings.activeColorTheme.color
+    var usernameText by remember(settings.githubUsername) { mutableStateOf(settings.githubUsername) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = StandBySurface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Dashboard,
+                        contentDescription = null,
+                        tint = activeAccent,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Live Watch Face Studio",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Live interactive preview & complications",
+                            fontSize = 12.sp,
+                            color = StandByOnSurfaceDim
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF30D158))
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = "LIVE",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF30D158)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 1. LIVE MINIATURE BEZEL PREVIEW
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(1.dp, activeAccent.copy(alpha = 0.4f), RoundedCornerShape(14.dp)),
+                colors = CardDefaults.cardColors(containerColor = Color.Black)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    // Bezel Top Bar Indicator
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (settings.watchFaceType == WatchFaceType.GMT_CALENDAR) "ROLEX GMT MASTER II" else "DIGITAL PRO",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = activeAccent,
+                            letterSpacing = 1.sp
+                        )
+
+                        Text(
+                            text = "STANDBY AMBIENT PREVIEW",
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White.copy(alpha = 0.5f),
+                            letterSpacing = 0.8.sp
+                        )
+                    }
+
+                    // Split View: Left Clock, Right Calendar + Dynamic Complication
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Left Watch Face
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(160.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (settings.watchFaceType == WatchFaceType.DIGITAL_CALENDAR) {
+                                DigitalClock(
+                                    time = currentTime,
+                                    use24Hour = settings.use24Hour,
+                                    showSeconds = settings.showSeconds,
+                                    accentColor = activeAccent,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                AnalogClock(
+                                    time = currentTime,
+                                    accentColor = activeAccent,
+                                    showSeconds = settings.showSeconds,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+
+                        // Divider
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(140.dp)
+                                .background(Color.White.copy(alpha = 0.1f))
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Right Calendar + Selected Bottom Complication
+                        Box(
+                            modifier = Modifier
+                                .weight(1.15f)
+                                .height(210.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            MonthCalendarWidget(
+                                time = currentTime,
+                                chargingState = chargingState,
+                                nextAlarm = nextAlarm,
+                                accentColor = activeAccent,
+                                bottomComplication = settings.bottomComplication,
+                                gitHubState = gitHubState
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // 2. WATCH FACE PRESET SELECTOR
+            Text(
+                text = "WATCH FACE PRESET",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = activeAccent,
+                letterSpacing = 1.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                WatchFaceOptionCard(
+                    title = "GMT & Calendar",
+                    subtitle = "24h mechanical GMT dual-time watch",
+                    isSelected = settings.watchFaceType == WatchFaceType.GMT_CALENDAR,
+                    accentColor = activeAccent,
+                    onClick = { viewModel.setWatchFaceType(WatchFaceType.GMT_CALENDAR) },
+                    modifier = Modifier.weight(1f)
+                )
+
+                WatchFaceOptionCard(
+                    title = "Digital & Calendar",
+                    subtitle = "Bold typography digital clock",
+                    isSelected = settings.watchFaceType == WatchFaceType.DIGITAL_CALENDAR,
+                    accentColor = activeAccent,
+                    onClick = { viewModel.setWatchFaceType(WatchFaceType.DIGITAL_CALENDAR) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // 3. DYNAMIC COMPLICATION SLOT SWAPPER
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "SWAP BOTTOM SLOT WIDGET",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = activeAccent,
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "Tap to swap widget",
+                    fontSize = 11.sp,
+                    color = StandByOnSurfaceDim
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ComplicationChoiceChip(
+                    icon = Icons.Default.BatteryChargingFull,
+                    label = "Battery",
+                    isSelected = settings.bottomComplication == BottomComplicationType.BATTERY,
+                    accentColor = activeAccent,
+                    onClick = { viewModel.setBottomComplication(BottomComplicationType.BATTERY) },
+                    modifier = Modifier.weight(1f)
+                )
+
+                ComplicationChoiceChip(
+                    icon = Icons.Default.Code,
+                    label = "GitHub Graph",
+                    isSelected = settings.bottomComplication == BottomComplicationType.GITHUB_GRAPH,
+                    accentColor = activeAccent,
+                    onClick = { viewModel.setBottomComplication(BottomComplicationType.GITHUB_GRAPH) },
+                    modifier = Modifier.weight(1.3f)
+                )
+
+                ComplicationChoiceChip(
+                    icon = Icons.Default.AccessTime,
+                    label = "Alarm",
+                    isSelected = settings.bottomComplication == BottomComplicationType.ALARM,
+                    accentColor = activeAccent,
+                    onClick = { viewModel.setBottomComplication(BottomComplicationType.ALARM) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // 4. GITHUB CONFIGURATION STUDIO (When GitHub Graph is active)
+            if (settings.bottomComplication == BottomComplicationType.GITHUB_GRAPH) {
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = StandBySurfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Code,
+                                    contentDescription = null,
+                                    tint = activeAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "GitHub Account & Activity",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
+                                )
+                            }
+
+                            if (gitHubState.isLoading) {
+                                CircularProgressIndicator(
+                                    color = activeAccent,
+                                    strokeWidth = 2.dp,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = usernameText,
+                                onValueChange = { usernameText = it },
+                                label = { Text("GitHub Username", fontSize = 12.sp) },
+                                placeholder = { Text("e.g. ArindamJaiman", fontSize = 12.sp) },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = activeAccent,
+                                    unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = activeAccent
+                                ),
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            Button(
+                                onClick = {
+                                    viewModel.setGithubUsername(usernameText)
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = activeAccent,
+                                    contentColor = Color.Black
+                                ),
+                                modifier = Modifier.height(54.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Sync",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Sync", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Stats Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            GitHubStatBadge(
+                                label = "Total",
+                                value = "${gitHubState.totalContributions} commits",
+                                modifier = Modifier.weight(1f)
+                            )
+                            GitHubStatBadge(
+                                label = "Streak",
+                                value = "${gitHubState.currentStreak} days 🔥",
+                                modifier = Modifier.weight(1f)
+                            )
+                            GitHubStatBadge(
+                                label = "Grid",
+                                value = "${gitHubState.recentWeeks.size} weeks",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 5. LAUNCH FULL-SCREEN PREVIEW BUTTON
+            Button(
+                onClick = onLaunchPreview,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = activeAccent,
+                    contentColor = Color.Black
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Apply & Launch StandBy Display", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun WatchFaceOptionCard(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (isSelected) accentColor.copy(alpha = 0.16f) else StandBySurfaceVariant)
+            .border(
+                width = if (isSelected) 1.5.dp else 0.dp,
+                color = if (isSelected) accentColor else Color.Transparent,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 12.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) Color.White else Color.White.copy(alpha = 0.85f)
+                )
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                color = StandByOnSurfaceDim,
+                maxLines = 2
+            )
+        }
+    }
+}
+
+@Composable
+private fun ComplicationChoiceChip(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean,
+    accentColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (isSelected) accentColor.copy(alpha = 0.2f) else StandBySurfaceVariant)
+            .border(
+                width = if (isSelected) 1.5.dp else 0.dp,
+                color = if (isSelected) accentColor else Color.Transparent,
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable { onClick() }
+            .padding(vertical = 10.dp, horizontal = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isSelected) accentColor else Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.75f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun GitHubStatBadge(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.White.copy(alpha = 0.06f))
+            .padding(vertical = 8.dp, horizontal = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = label.uppercase(),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Bold,
+                color = StandByOnSurfaceDim,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
         }
     }
 }

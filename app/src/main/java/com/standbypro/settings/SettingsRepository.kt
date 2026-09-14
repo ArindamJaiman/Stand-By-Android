@@ -11,6 +11,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import com.standbypro.domain.BottomComplicationType
+import com.standbypro.domain.WatchFaceType
 import java.io.IOException
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "standby_settings")
@@ -30,6 +32,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val BRIGHTNESS_LEVEL = androidx.datastore.preferences.core.floatPreferencesKey("brightness_level")
         val COLOR_THEME_ID = stringPreferencesKey("color_theme_id")
         val AUTO_DIM_ENABLED = booleanPreferencesKey("auto_dim_enabled")
+        val WATCH_FACE_TYPE = stringPreferencesKey("watch_face_type")
+        val BOTTOM_COMPLICATION = stringPreferencesKey("bottom_complication")
+        val GITHUB_USERNAME = stringPreferencesKey("github_username")
     }
 
     val settingsFlow: Flow<StandBySettings> = dataStore.data
@@ -41,12 +46,28 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
             }
         }
         .map { preferences ->
-            val clockStyleStr = preferences[PreferencesKeys.CLOCK_STYLE] ?: ClockStyle.DIGITAL.name
+            val clockStyleStr = preferences[PreferencesKeys.CLOCK_STYLE] ?: ClockStyle.ANALOG.name
             val clockStyle = try {
                 ClockStyle.valueOf(clockStyleStr)
             } catch (e: IllegalArgumentException) {
-                ClockStyle.DIGITAL
+                ClockStyle.ANALOG
             }
+
+            val watchFaceTypeStr = preferences[PreferencesKeys.WATCH_FACE_TYPE] ?: WatchFaceType.GMT_CALENDAR.name
+            val watchFaceType = try {
+                WatchFaceType.valueOf(watchFaceTypeStr)
+            } catch (e: IllegalArgumentException) {
+                WatchFaceType.GMT_CALENDAR
+            }
+
+            val bottomComplicationStr = preferences[PreferencesKeys.BOTTOM_COMPLICATION] ?: BottomComplicationType.BATTERY.name
+            val bottomComplication = try {
+                BottomComplicationType.valueOf(bottomComplicationStr)
+            } catch (e: IllegalArgumentException) {
+                BottomComplicationType.BATTERY
+            }
+
+            val githubUsername = preferences[PreferencesKeys.GITHUB_USERNAME] ?: "ArindamJaiman"
 
             StandBySettings(
                 isEnabled = preferences[PreferencesKeys.IS_ENABLED] ?: true,
@@ -60,7 +81,10 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
                 showSeconds = preferences[PreferencesKeys.SHOW_SECONDS] ?: false,
                 clockStyle = clockStyle,
                 brightnessLevel = preferences[PreferencesKeys.BRIGHTNESS_LEVEL] ?: 0.05f,
-                colorThemeId = preferences[PreferencesKeys.COLOR_THEME_ID] ?: StandByColorTheme.ORANGE.id
+                colorThemeId = preferences[PreferencesKeys.COLOR_THEME_ID] ?: StandByColorTheme.ORANGE.id,
+                watchFaceType = watchFaceType,
+                bottomComplication = bottomComplication,
+                githubUsername = githubUsername
             )
         }
 
@@ -133,6 +157,30 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setAutoDimEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.AUTO_DIM_ENABLED] = enabled
+        }
+    }
+
+    suspend fun setWatchFaceType(watchFaceType: WatchFaceType) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.WATCH_FACE_TYPE] = watchFaceType.name
+            // Also keep clockStyle in sync
+            preferences[PreferencesKeys.CLOCK_STYLE] = if (watchFaceType == WatchFaceType.DIGITAL_CALENDAR) {
+                ClockStyle.DIGITAL.name
+            } else {
+                ClockStyle.ANALOG.name
+            }
+        }
+    }
+
+    suspend fun setBottomComplication(bottomComplication: BottomComplicationType) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BOTTOM_COMPLICATION] = bottomComplication.name
+        }
+    }
+
+    suspend fun setGithubUsername(username: String) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.GITHUB_USERNAME] = username.trim().removePrefix("@")
         }
     }
 }
