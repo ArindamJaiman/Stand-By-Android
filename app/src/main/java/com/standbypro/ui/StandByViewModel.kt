@@ -3,27 +3,38 @@ package com.standbypro.ui
 import android.app.AlarmManager
 import android.app.Application
 import android.content.Context
+import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.standbypro.clock.ClockEngine
+import com.standbypro.clock.TimeProvider
+import com.standbypro.data.DemoDataProvider
+import com.standbypro.data.GitHubContributionsState
+import com.standbypro.data.GitHubRepository
 import com.standbypro.domain.BatteryHealth
+import com.standbypro.domain.BottomComplicationType
 import com.standbypro.domain.ChargeType
 import com.standbypro.domain.ChargingState
+import com.standbypro.domain.DashboardLayoutType
+import com.standbypro.domain.LiveActivityState
+import com.standbypro.domain.NotificationDisplayState
+import com.standbypro.domain.WatchFaceRegistry
+import com.standbypro.domain.WatchFaceType
+import com.standbypro.domain.WidgetRegistry
 import com.standbypro.hardware.AmbientLightMonitor
 import com.standbypro.hardware.ChargingStateMonitor
+import com.standbypro.notifications.NotificationRepository
 import com.standbypro.power.AutoDimController
 import com.standbypro.power.BurnInOffset
 import com.standbypro.power.BurnInProtectionController
 import com.standbypro.settings.ClockStyle
 import com.standbypro.settings.SettingsRepository
+import com.standbypro.settings.StandByProfile
 import com.standbypro.settings.StandBySettings
 import com.standbypro.settings.dataStore
-import com.standbypro.data.GitHubContributionsState
-import com.standbypro.data.GitHubRepository
-import com.standbypro.domain.BottomComplicationType
-import com.standbypro.domain.WatchFaceType
+import com.standbypro.ui.compositor.AmbientDisplayState
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -48,25 +59,7 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
 
     val gitHubContributionsState: StateFlow<GitHubContributionsState> = GitHubRepository.contributionsState
 
-    init {
-        // Automatically fetch/refresh contributions when githubUsername setting changes
-        viewModelScope.launch {
-            settingsRepository.settingsFlow
-                .map { it.githubUsername }
-                .distinctUntilChanged()
-                .collect { username ->
-                    GitHubRepository.fetchContributions(username)
-                }
-        }
-    }
-
-    fun fetchGitHubContributions(username: String, forceRefresh: Boolean = false) {
-        viewModelScope.launch {
-            GitHubRepository.fetchContributions(username, forceRefresh = forceRefresh)
-        }
-    }
-
-    val currentTime: StateFlow<LocalDateTime> = ClockEngine.timeFlow(1000L)
+    val currentTime: StateFlow<LocalDateTime> = TimeProvider.timeFlow(1000L)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -107,6 +100,56 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
             initialValue = BurnInOffset(0f, 0f)
         )
 
+    val notifications: StateFlow<NotificationDisplayState> = NotificationRepository.notifications
+
+    // Unified AmbientDisplayState combining settings, hardware monitors, and layout state
+    val ambientDisplayState: StateFlow<AmbientDisplayState> = combine(
+        settings,
+        chargingState,
+        isNightMode,
+        isDimmed,
+        burnInOffset
+    ) { set, chg, night, dim, burnIn ->
+        val effectiveCharging = if (set.demoModeEnabled) set.simulateCharging else chg.isCharging
+        val effectiveNight = if (set.demoModeEnabled) set.simulateNight else (set.nightModeEnabled && night)
+        val offset = if (set.burnInProtectionEnabled) Offset(burnIn.x, burnIn.y) else Offset.Zero
+
+        AmbientDisplayState(
+            isCharging = effectiveCharging,
+            isLandscape = true,
+            isNight = effectiveNight,
+            ambientLux = if (effectiveNight) 4f else 45f,
+            brightness = set.brightnessLevel,
+            selectedProfile = set.activeProfile.name,
+            watchFaceId = set.activeWatchFaceId,
+            layout = set.layoutType,
+            widgets = set.assignedWidgets,
+            liveActivity = if (set.demoModeEnabled) DemoDataProvider.demoLiveActivities.firstOrNull() else null,
+            notificationState = NotificationRepository.notifications.value,
+            burnInOffset = offset,
+            activeThemeColor = set.activeColorTheme.color,
+            nightModeStyle = set.nightModeStyle,
+            isDimmed = set.autoDimEnabled && dim,
+            showControls = false
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = AmbientDisplayState()
+    )
+
+    init {
+        // Automatically fetch GitHub contributions when username setting changes
+        viewModelScope.launch {
+            settingsRepository.settingsFlow
+                .map { it.githubUsername }
+                .distinctUntilChanged()
+                .collect { username ->
+                    GitHubRepository.fetchContributions(username)
+                }
+        }
+    }
+
     fun reportInteraction() {
         AutoDimController.reportInteraction()
     }
@@ -116,6 +159,86 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
         val nextAlarm = alarmManager?.nextAlarmClock ?: return null
         val formatter = SimpleDateFormat("EEE h:mm a", Locale.getDefault())
         return formatter.format(Date(nextAlarm.triggerTime))
+    }
+
+    fun fetchGitHubContributions(username: String, forceRefresh: Boolean = false) {
+        viewModelScope.launch {
+            GitHubRepository.fetchContributions(username, forceRefresh = forceRefresh)
+        }
+    }
+
+    fun setActiveWatchFaceId(faceId: String) {
+        viewModelScope.launch {
+            settingsRepository.setActiveWatchFaceId(faceId)
+        }
+    }
+
+    fun cycleWatchFace() {
+        viewModelScope.launch {
+            val allFaces = WatchFaceRegistry.getAll()
+            val currentId = settings.value.activeWatchFaceId
+            val currentIndex = allFaces.indexOfFirst { it.id == currentId }
+            val nextIndex = (currentIndex + 1) % allFaces.size
+            settingsRepository.setActiveWatchFaceId(allFaces[nextIndex].id)
+        }
+    }
+
+    fun cycleRightWidget() {
+        viewModelScope.launch {
+            val allWidgets = WidgetRegistry.getAll()
+            val currentWidgetId = settings.value.assignedWidgets.firstOrNull()?.widgetId ?: "widget_calendar"
+            val currentIndex = allWidgets.indexOfFirst { it.id == currentWidgetId }
+            val nextIndex = (currentIndex + 1) % allWidgets.size
+            settingsRepository.setAssignedWidget(0, allWidgets[nextIndex].id)
+        }
+    }
+
+    fun setLayoutType(layout: DashboardLayoutType) {
+        viewModelScope.launch {
+            settingsRepository.setLayoutType(layout)
+        }
+    }
+
+    fun setAssignedWidget(slotIndex: Int, widgetId: String) {
+        viewModelScope.launch {
+            settingsRepository.setAssignedWidget(slotIndex, widgetId)
+        }
+    }
+
+    fun setProfile(profile: StandByProfile) {
+        viewModelScope.launch {
+            settingsRepository.setProfile(profile)
+        }
+    }
+
+    fun toggleFavoriteFace(faceId: String) {
+        viewModelScope.launch {
+            settingsRepository.toggleFavoriteFace(faceId)
+        }
+    }
+
+    fun setNightModeStyle(style: String) {
+        viewModelScope.launch {
+            settingsRepository.setNightModeStyle(style)
+        }
+    }
+
+    fun setDemoModeEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setDemoModeEnabled(enabled)
+        }
+    }
+
+    fun setSimulateCharging(sim: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setSimulateCharging(sim)
+        }
+    }
+
+    fun setSimulateNight(sim: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setSimulateNight(sim)
+        }
     }
 
     fun setEnabled(enabled: Boolean) {
