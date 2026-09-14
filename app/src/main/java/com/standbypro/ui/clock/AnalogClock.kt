@@ -54,7 +54,8 @@ fun AnalogClock(
             .aspectRatio(1f)
     ) {
         val center = Offset(size.width / 2, size.height / 2)
-        val radius = size.minDimension / 2 * 0.92f
+        // Scaled to 0.74f for perfectly balanced proportions with breathing room around dial
+        val radius = size.minDimension / 2 * 0.74f
 
         // 1. Draw outer ticks around the perimeter (60 marks)
         for (i in 0..59) {

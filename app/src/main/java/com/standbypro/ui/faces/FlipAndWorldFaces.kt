@@ -40,13 +40,13 @@ fun FlipCard(
             .clip(RoundedCornerShape(12.dp))
             .background(cardBg)
             .border(1.dp, Color(0xFF333333), RoundedCornerShape(12.dp))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = value,
-                fontSize = 72.sp,
+                fontSize = 52.sp,
                 fontWeight = FontWeight.Black,
                 color = textColor,
                 fontFamily = FontFamily.SansSerif

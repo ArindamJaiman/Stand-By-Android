@@ -38,7 +38,6 @@ fun DigitalMinimalFace(
     use24Hour: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    val hourFormat = if (use24Hour) "%02d" else "%d"
     val hours = if (use24Hour) time.hour else (if (time.hour % 12 == 0) 12 else time.hour % 12)
     val mins = time.minute
     val amPm = if (time.hour >= 12) "PM" else "AM"
@@ -53,27 +52,28 @@ fun DigitalMinimalFace(
         ) {
             Text(
                 text = "$hours:${"%02d".format(mins)}",
-                fontSize = 80.sp,
-                fontWeight = FontWeight.ExtraLight,
+                fontSize = 62.sp,
+                fontWeight = FontWeight.Light,
                 color = Color.White,
-                letterSpacing = (-2).sp
+                letterSpacing = (-1.5).sp
             )
             if (!use24Hour) {
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = amPm,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Light,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
                     color = accentColor,
-                    modifier = Modifier.padding(bottom = 14.dp)
+                    modifier = Modifier.padding(bottom = 10.dp)
                 )
             }
         }
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = time.format(DateTimeFormatter.ofPattern("EEEE, MMMM d")),
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Normal,
-            color = Color.White.copy(alpha = 0.6f)
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color.White.copy(alpha = 0.65f)
         )
     }
 }
@@ -95,17 +95,17 @@ fun DigitalBoldFace(
     ) {
         Text(
             text = hours,
-            fontSize = 90.sp,
+            fontSize = 58.sp,
             fontWeight = FontWeight.Black,
             color = Color.White,
-            lineHeight = 85.sp
+            lineHeight = 54.sp
         )
         Text(
             text = mins,
-            fontSize = 90.sp,
+            fontSize = 58.sp,
             fontWeight = FontWeight.Black,
             color = accentColor,
-            lineHeight = 85.sp
+            lineHeight = 54.sp
         )
     }
 }
@@ -132,7 +132,7 @@ fun DigitalOledFace(
         ) {
             Text(
                 text = "$hours:$mins",
-                fontSize = 72.sp,
+                fontSize = 56.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
                 letterSpacing = (-1).sp
@@ -147,7 +147,7 @@ fun DigitalOledFace(
             ) {
                 Text(
                     text = secs,
-                    fontSize = 18.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = accentColor,
                     fontFamily = FontFamily.Monospace
@@ -157,9 +157,9 @@ fun DigitalOledFace(
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = "OLED TRUE BLACK",
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White.copy(alpha = 0.35f),
+            color = Color.White.copy(alpha = 0.4f),
             letterSpacing = 2.sp
         )
     }
@@ -185,21 +185,21 @@ fun DigitalSegmentedFace(
                 .clip(RoundedCornerShape(16.dp))
                 .background(Color(0xFF0D0D0D))
                 .border(1.dp, Color(0xFF222222), RoundedCornerShape(16.dp))
-                .padding(horizontal = 24.dp, vertical = 14.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
             Text(
                 text = "$hours:$mins",
-                fontSize = 68.sp,
+                fontSize = 50.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
                 color = accentColor,
-                letterSpacing = 6.sp
+                letterSpacing = 4.sp
             )
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "7-SEGMENT LED",
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             color = accentColor.copy(alpha = 0.6f),
             letterSpacing = 1.5.sp
@@ -225,7 +225,7 @@ fun DigitalMatrixFace(
     ) {
         Text(
             text = "SYS.TIME // MATRIX",
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontFamily = FontFamily.Monospace,
             color = Color(0xFF00FF66),
             letterSpacing = 2.sp
@@ -233,16 +233,16 @@ fun DigitalMatrixFace(
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "$hours:$mins:$secs",
-            fontSize = 58.sp,
+            fontSize = 46.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
             color = Color(0xFF00FF66),
-            letterSpacing = 3.sp
+            letterSpacing = 2.sp
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "KERNEL SECURE • TICK=${System.currentTimeMillis() % 10000}",
-            fontSize = 9.sp,
+            fontSize = 11.sp,
             fontFamily = FontFamily.Monospace,
             color = Color(0xFF00FF66).copy(alpha = 0.5f)
         )
@@ -263,17 +263,17 @@ fun DigitalNeonFace(
         modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        // Glow effect
+        // Subtle ambient neon glow
         Text(
             text = "$hours:$mins",
-            fontSize = 80.sp,
+            fontSize = 58.sp,
             fontWeight = FontWeight.Bold,
-            color = accentColor.copy(alpha = 0.4f),
-            modifier = Modifier.blur(16.dp)
+            color = accentColor.copy(alpha = 0.35f),
+            modifier = Modifier.blur(14.dp)
         )
         Text(
             text = "$hours:$mins",
-            fontSize = 80.sp,
+            fontSize = 58.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
@@ -309,9 +309,9 @@ fun DigitalWordClockFace(
     ) {
         Text(text = "IT IS CURRENTLY", fontSize = 12.sp, color = Color.Gray, letterSpacing = 2.sp)
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = minutePhrase, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = accentColor)
+        Text(text = minutePhrase, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = accentColor)
         Spacer(modifier = Modifier.height(2.dp))
-        Text(text = currentHourName, fontSize = 42.sp, fontWeight = FontWeight.Black, color = Color.White, letterSpacing = 1.sp)
+        Text(text = currentHourName, fontSize = 34.sp, fontWeight = FontWeight.Black, color = Color.White, letterSpacing = 1.sp)
     }
 }
 
@@ -331,8 +331,8 @@ fun DigitalBinaryFace(
         verticalArrangement = Arrangement.Center
     ) {
         Text(text = "BINARY CLOCK", fontSize = 11.sp, color = Color.Gray, letterSpacing = 2.sp)
-        Spacer(modifier = Modifier.height(14.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             BinaryColumn(label = "H", value = hours, bits = 5, accentColor = accentColor)
             BinaryColumn(label = "M", value = mins, bits = 6, accentColor = accentColor)
             BinaryColumn(label = "S", value = secs, bits = 6, accentColor = accentColor)
@@ -340,7 +340,7 @@ fun DigitalBinaryFace(
         Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = "%02d:%02d:%02d".format(hours, mins, secs),
-            fontSize = 16.sp,
+            fontSize = 15.sp,
             color = Color.White.copy(alpha = 0.7f),
             fontFamily = FontFamily.Monospace
         )
@@ -354,8 +354,8 @@ private fun BinaryColumn(label: String, value: Int, bits: Int, accentColor: Colo
             val isBitOn = (value and (1 shl i)) != 0
             Box(
                 modifier = Modifier
-                    .padding(vertical = 3.dp)
-                    .size(14.dp)
+                    .padding(vertical = 2.5.dp)
+                    .size(12.dp)
                     .clip(CircleShape)
                     .background(if (isBitOn) accentColor else Color(0xFF222222))
             )
@@ -382,15 +382,15 @@ fun DigitalOutlineFace(
     ) {
         Text(
             text = "$hours:$mins",
-            fontSize = 84.sp,
+            fontSize = 58.sp,
             fontWeight = FontWeight.ExtraBold,
             color = accentColor,
             textAlign = TextAlign.Center
         )
         Text(
             text = time.format(DateTimeFormatter.ofPattern("EEE • MMM d")),
-            fontSize = 14.sp,
-            color = Color.White.copy(alpha = 0.5f),
+            fontSize = 13.sp,
+            color = Color.White.copy(alpha = 0.6f),
             letterSpacing = 1.sp
         )
     }
@@ -413,15 +413,15 @@ fun DigitalTypewriterFace(
     ) {
         Text(
             text = "CHAPTER 24 — THE PASSAGE OF TIME",
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontFamily = FontFamily.Monospace,
             color = Color.Gray,
             letterSpacing = 1.sp
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "$hours:$mins:$secs",
-            fontSize = 62.sp,
+            fontSize = 48.sp,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
             color = Color.White,
@@ -452,30 +452,30 @@ fun DigitalPosterFace(
         modifier = modifier
             .fillMaxSize()
             .padding(12.dp)
-            .border(2.dp, accentColor, RoundedCornerShape(16.dp))
-            .padding(16.dp),
+            .border(1.5.dp, accentColor, RoundedCornerShape(16.dp))
+            .padding(14.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = hours,
-                fontSize = 76.sp,
+                fontSize = 52.sp,
                 fontWeight = FontWeight.Black,
                 color = Color.White,
-                lineHeight = 70.sp
+                lineHeight = 48.sp
             )
             Box(
                 modifier = Modifier
-                    .width(60.dp)
-                    .height(3.dp)
+                    .width(48.dp)
+                    .height(2.5.dp)
                     .background(accentColor)
             )
             Text(
                 text = mins,
-                fontSize = 76.sp,
+                fontSize = 52.sp,
                 fontWeight = FontWeight.Black,
                 color = accentColor,
-                lineHeight = 70.sp
+                lineHeight = 48.sp
             )
         }
     }
@@ -494,8 +494,8 @@ fun DigitalGlassFace(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .clip(RoundedCornerShape(24.dp))
+            .padding(14.dp)
+            .clip(RoundedCornerShape(20.dp))
             .background(
                 Brush.linearGradient(
                     listOf(
@@ -512,14 +512,14 @@ fun DigitalGlassFace(
                         Color.Transparent
                     )
                 ),
-                RoundedCornerShape(24.dp)
+                RoundedCornerShape(20.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "$hours:$mins",
-                fontSize = 68.sp,
+                fontSize = 54.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color.White,
                 letterSpacing = (-1).sp

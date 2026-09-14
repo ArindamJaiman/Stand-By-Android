@@ -16,11 +16,15 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.standbypro.clock.rememberSweepingSeconds
+import com.standbypro.ui.clock.AnalogClock
 import java.time.LocalDateTime
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
+
+private inline fun calculateBalancedRadius(width: Float, height: Float): Float =
+    (min(width, height) / 2f) * 0.74f
 
 /**
  * 24-Hour GMT Hand drawing helper.
@@ -33,7 +37,6 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawGmtHand(
     sweepingSeconds: Float,
     gmtColor: Color = Color(0xFFFF3B30)
 ) {
-    // 24-hour rotation: 360 degrees in 24 hours = 15 degrees per hour
     val gmtTotalHours = hours + (minutes / 60f) + (sweepingSeconds / 3600f)
     val gmtAngle = (gmtTotalHours * 15f) - 90f
     val gmtRad = gmtAngle * (PI / 180f).toFloat()
@@ -41,7 +44,6 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawGmtHand(
     val gmtLength = radius * 0.82f
     val arrowTip = Offset(center.x + gmtLength * cos(gmtRad), center.y + gmtLength * sin(gmtRad))
 
-    // Red stalk
     drawLine(
         color = gmtColor,
         start = center,
@@ -50,7 +52,6 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawGmtHand(
         cap = StrokeCap.Round
     )
 
-    // Red GMT arrow triangle with luminous center
     val arrowSize = 14f
     val normalAngle1 = gmtRad + (PI * 0.85).toFloat()
     val normalAngle2 = gmtRad - (PI * 0.85).toFloat()
@@ -74,32 +75,13 @@ fun GmtExplorerFace(
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val sweepingSeconds by rememberSweepingSeconds()
-
-    Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
-            val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
-
-            // Bezel with 24-hour markings
-            drawCircle(Color(0xFF141414), radius, center)
-            drawCircle(Color(0xFF2E2E30), radius, center, style = Stroke(12f))
-
-            // 24-hour bezel ticks
-            for (i in 0 until 24) {
-                val angleRad = (i * 15f - 90f) * (PI / 180f).toFloat()
-                val isMajor = i % 2 == 0
-                val tickLen = if (isMajor) 10f else 5f
-                val p1 = Offset(center.x + (radius - 2f) * cos(angleRad), center.y + (radius - 2f) * sin(angleRad))
-                val p2 = Offset(center.x + (radius - 2f - tickLen) * cos(angleRad), center.y + (radius - 2f - tickLen) * sin(angleRad))
-                drawLine(Color.White.copy(alpha = if (isMajor) 0.9f else 0.4f), p1, p2, strokeWidth = if (isMajor) 2f else 1f)
-            }
-
-            drawStandardBezel(center, radius - 16f, Color.White, Color.White.copy(alpha = 0.35f))
-            drawGmtHand(center, radius - 16f, time.hour, time.minute, sweepingSeconds, Color(0xFFFF3B30))
-            drawStandardHands(center, radius - 16f, time.hour, time.minute, sweepingSeconds, Color.White, Color.White, accentColor)
-        }
-    }
+    // Uses the dedicated, silky-smooth mechanical AnalogClock with 24h GMT hand and bold numerals
+    AnalogClock(
+        time = time,
+        accentColor = accentColor,
+        showSeconds = true,
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -108,7 +90,12 @@ fun GmtCalendarFace(
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    GmtExplorerFace(time = time, accentColor = accentColor, modifier = modifier)
+    AnalogClock(
+        time = time,
+        accentColor = accentColor,
+        showSeconds = true,
+        modifier = modifier
+    )
 }
 
 @Composable
@@ -122,7 +109,7 @@ fun HybridAnalogDigitalFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF141414), radius, center)
             drawCircle(Color(0xFF282828), radius, center, style = Stroke(2f))
@@ -154,7 +141,7 @@ fun HybridAnalogBatteryFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF141414), radius, center)
 
@@ -191,7 +178,7 @@ fun HybridAnalogWeatherFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF12141A), radius, center)
 
@@ -218,11 +205,10 @@ fun HybridAnalogCalendarFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF141414), radius, center)
 
-            // Date window at 3 o'clock
             val dateWindow = Offset(center.x + radius * 0.52f, center.y)
             drawRoundRect(
                 color = Color.White,
@@ -243,14 +229,14 @@ fun HybridGmtWeatherFace(
     accentColor: Color,
     modifier: Modifier = Modifier
 ) {
-    GmtExplorerFace(time = time, accentColor = accentColor, modifier = modifier)
+    AnalogClock(time = time, accentColor = accentColor, showSeconds = true, modifier = modifier)
 }
 
 @Composable
 fun HybridDualTimeFace(
     time: LocalDateTime,
     accentColor: Color,
-    secondaryHoursOffset: Int = -5, // e.g. New York
+    secondaryHoursOffset: Int = -5,
     modifier: Modifier = Modifier
 ) {
     val sweepingSeconds by rememberSweepingSeconds()
@@ -258,17 +244,15 @@ fun HybridDualTimeFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF131316), radius, center)
 
-            // Secondary Timezone subdial at 6 o'clock
             val subCenter = Offset(center.x, center.y + radius * 0.42f)
             val subRadius = radius * 0.28f
             drawCircle(Color(0xFF1F1F24), subRadius, subCenter)
             drawCircle(Color.White.copy(alpha = 0.25f), subRadius, subCenter, style = Stroke(1.5f))
 
-            // Subdial hands
             val secHour = (time.hour + secondaryHoursOffset + 24) % 24
             val subHourAngle = ((secHour % 12) + time.minute / 60f) * 30f - 90f
             val subHourRad = subHourAngle * (PI / 180f).toFloat()

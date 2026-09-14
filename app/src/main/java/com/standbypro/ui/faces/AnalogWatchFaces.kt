@@ -105,6 +105,9 @@ fun DrawScope.drawStandardHands(
     drawCircle(color = Color.Black, radius = 2.5f, center = center)
 }
 
+private inline fun calculateBalancedRadius(width: Float, height: Float): Float =
+    (min(width, height) / 2f) * 0.74f
+
 @Composable
 fun AnalogClassicFace(
     time: LocalDateTime,
@@ -116,7 +119,7 @@ fun AnalogClassicFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF141414), radius, center)
             drawCircle(Color(0xFF282828), radius, center, style = Stroke(2f))
@@ -138,7 +141,7 @@ fun AnalogModernFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             // Minimal outer ring
             drawCircle(Color(0xFF1C1C1E), radius, center)
@@ -168,7 +171,7 @@ fun AnalogLuxuryFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             // Sunburst dial effect
             drawCircle(
@@ -206,12 +209,12 @@ fun ChronographFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF161618), radius, center)
             drawCircle(Color(0xFF333336), radius, center, style = Stroke(2f))
 
-            // 3 Subdials: Left (seconds), Right (minute counter), Bottom (hour counter)
+            // 3 Subdials
             val subRadius = radius * 0.22f
             val subOffset = radius * 0.42f
             val leftSub = Offset(center.x - subOffset, center.y)
@@ -240,7 +243,7 @@ fun PilotFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF101418), radius, center)
             drawCircle(Color(0xFF2A3440), radius, center, style = Stroke(2f))
@@ -272,9 +275,9 @@ fun DiverFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
-            // Unidirectional rotating bezel ring simulation
+            // Dive bezel ring
             drawCircle(Color(0xFF00241B), radius, center)
             drawCircle(Color(0xFF007A5E), radius, center, style = Stroke(12f))
 
@@ -302,11 +305,11 @@ fun SkeletonFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF0A0A0A), radius, center)
 
-            // Exposed escapement and balance wheel simulation
+            // Exposed balance wheel
             drawCircle(Color(0xFF282828), radius * 0.45f, center, style = Stroke(8f))
             drawCircle(Color(0xFF444444), radius * 0.28f, Offset(center.x + 20f, center.y - 15f), style = Stroke(4f))
             drawCircle(Color(0xFFD4AF37), radius * 0.22f, Offset(center.x - 20f, center.y + 20f), style = Stroke(3f))
@@ -328,12 +331,11 @@ fun RomanFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF141414), radius, center)
             drawCircle(Color(0xFF333333), radius, center, style = Stroke(2f))
 
-            // Roman numerals track
             drawCircle(Color.White.copy(alpha = 0.15f), radius * 0.85f, center, style = Stroke(1f))
             drawStandardBezel(center, radius, Color.White, Color.White.copy(alpha = 0.25f))
             drawStandardHands(center, radius, time.hour, time.minute, sweepingSeconds, Color.White, Color.White, accentColor)
@@ -352,7 +354,7 @@ fun PocketWatchFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 16f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             // Pocket watch crown at 12 o'clock
             val crownY = center.y - radius - 8f
@@ -378,10 +380,9 @@ fun ArtDecoFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF121214), radius, center)
-            // Octagonal Art Deco geometric geometry
             for (i in 0 until 8) {
                 val rad1 = (i * 45f) * (PI / 180f).toFloat()
                 val rad2 = ((i + 1) * 45f) * (PI / 180f).toFloat()
@@ -406,12 +407,10 @@ fun NordicFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
-            // Clean Scandinavian minimalism: pristine matte dial
             drawCircle(Color(0xFF18191A), radius, center)
 
-            // Ultra-thin minimal indices
             for (i in 0 until 12) {
                 val angleRad = (i * 30f - 90f) * (PI / 180f).toFloat()
                 val start = Offset(center.x + (radius - 14f) * cos(angleRad), center.y + (radius - 14f) * sin(angleRad))
@@ -435,12 +434,11 @@ fun CompassFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF0E1318), radius, center)
             drawCircle(Color(0xFF233240), radius, center, style = Stroke(2f))
 
-            // Cardinal direction compass points
             val points = listOf("N" to -90f, "E" to 0f, "S" to 90f, "W" to 180f)
             points.forEach { (_, angle) ->
                 val rad = angle * (PI / 180f).toFloat()
@@ -465,13 +463,11 @@ fun SundialFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
-            // Stone-textured sundial dial
             drawCircle(Color(0xFF1C1B18), radius, center)
             drawCircle(Color(0xFF4A4438), radius, center, style = Stroke(2f))
 
-            // Radial shadow lines
             for (i in 0 until 12) {
                 val angleRad = (i * 30f - 90f) * (PI / 180f).toFloat()
                 val end = Offset(center.x + radius * cos(angleRad), center.y + radius * sin(angleRad))
@@ -494,12 +490,11 @@ fun MoonphaseFace(
     Box(modifier = modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize().aspectRatio(1f)) {
             val center = Offset(size.width / 2f, size.height / 2f)
-            val radius = min(size.width, size.height) / 2f - 12f
+            val radius = calculateBalancedRadius(size.width, size.height)
 
             drawCircle(Color(0xFF0F1420), radius, center)
             drawCircle(Color(0xFF28344E), radius, center, style = Stroke(2f))
 
-            // Moonphase aperture at 6 o'clock
             val moonCenter = Offset(center.x, center.y + radius * 0.42f)
             val moonRadius = radius * 0.22f
             drawCircle(Color(0xFF080B12), moonRadius, moonCenter)

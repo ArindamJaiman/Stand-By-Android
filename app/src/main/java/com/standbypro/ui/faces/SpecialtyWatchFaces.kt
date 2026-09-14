@@ -61,31 +61,33 @@ fun WeatherDigitalFace(
                 imageVector = Icons.Default.WbSunny,
                 contentDescription = null,
                 tint = accentColor,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(26.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "${weather.temperatureCelsius}°",
-                fontSize = 32.sp,
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = weather.condition.displayName,
-                fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.7f)
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.75f)
             )
         }
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "$hours:$mins",
-            fontSize = 72.sp,
-            fontWeight = FontWeight.Thin,
+            fontSize = 56.sp,
+            fontWeight = FontWeight.Light,
             color = Color.White
         )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "H:${weather.highCelsius}°  L:${weather.lowCelsius}° • ${weather.cityName}",
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             color = Color.Gray
         )
     }
@@ -158,14 +160,14 @@ fun PomodoroClockFace(
                 .clip(RoundedCornerShape(20.dp))
                 .background(Color(0xFF1E1010))
                 .border(2.dp, Color(0xFFFF3B30).copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                .padding(horizontal = 28.dp, vertical = 18.dp),
+                .padding(horizontal = 24.dp, vertical = 14.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = "DEEP FOCUS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF3B30), letterSpacing = 2.sp)
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(text = "23:45", fontSize = 64.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
-                Spacer(modifier = Modifier.height(6.dp))
+                Text(text = "DEEP FOCUS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF3B30), letterSpacing = 2.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = "23:45", fontSize = 48.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(text = "CYCLE 3 OF 4", fontSize = 11.sp, color = Color.Gray)
             }
         }
@@ -183,9 +185,9 @@ fun TimerFace(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(imageVector = Icons.Default.Timer, contentDescription = null, tint = accentColor, modifier = Modifier.size(36.dp))
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "14:52", fontSize = 68.sp, fontWeight = FontWeight.Bold, color = Color.White, fontFamily = FontFamily.Monospace)
+        Icon(imageVector = Icons.Default.Timer, contentDescription = null, tint = accentColor, modifier = Modifier.size(32.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(text = "14:52", fontSize = 52.sp, fontWeight = FontWeight.Bold, color = Color.White, fontFamily = FontFamily.Monospace)
         Text(text = "COUNTDOWN ACTIVE", fontSize = 11.sp, color = accentColor, letterSpacing = 2.sp)
     }
 }
@@ -201,7 +203,7 @@ fun StopwatchFace(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(text = "04:18.82", fontSize = 64.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
+        Text(text = "04:18.82", fontSize = 48.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
         Spacer(modifier = Modifier.height(6.dp))
         Text(text = "LAP 2 • SPLIT 02:11.40", fontSize = 12.sp, color = accentColor, fontWeight = FontWeight.Bold)
     }
@@ -238,7 +240,8 @@ fun AmbientGradientFace(
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "$hours:$mins", fontSize = 72.sp, fontWeight = FontWeight.ExtraLight, color = Color.White)
+            Text(text = "$hours:$mins", fontSize = 56.sp, fontWeight = FontWeight.Light, color = Color.White)
+            Spacer(modifier = Modifier.height(4.dp))
             Text(text = title.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.7f), letterSpacing = 3.sp)
         }
     }
@@ -307,9 +310,9 @@ fun PhotoFrameFace(
             ),
         contentAlignment = Alignment.BottomStart
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(text = "$hours:$mins", fontSize = 56.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            Text(text = time.format(DateTimeFormatter.ofPattern("EEEE, MMMM d")), fontSize = 14.sp, color = accentColor)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = "$hours:$mins", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(text = time.format(DateTimeFormatter.ofPattern("EEEE, MMMM d")), fontSize = 13.sp, color = accentColor)
             Text(text = "Photo Stream • Bedside Album", fontSize = 11.sp, color = Color.Gray)
         }
     }

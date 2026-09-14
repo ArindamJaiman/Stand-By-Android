@@ -140,9 +140,9 @@ fun WeatherStandByWidget(
             }
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(text = "${weather.temperatureCelsius}°", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(text = "${weather.temperatureCelsius}°", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = weather.condition.displayName, fontSize = 14.sp, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 8.dp))
+                Text(text = weather.condition.displayName, fontSize = 14.sp, color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 6.dp))
             }
             Spacer(modifier = Modifier.height(6.dp))
             Text(text = "H:${weather.highCelsius}°  L:${weather.lowCelsius}°  •  Wind ${weather.windKmh} km/h", fontSize = 11.sp, color = Color.Gray)
@@ -171,7 +171,7 @@ fun BatteryStandByWidget(
                 Icon(imageVector = Icons.Default.BatteryChargingFull, contentDescription = null, tint = if (chargingState.isCharging) Color(0xFF30D158) else Color.White, modifier = Modifier.size(24.dp))
             }
             Spacer(modifier = Modifier.height(10.dp))
-            Text(text = "${chargingState.batteryPercent}%", fontSize = 48.sp, fontWeight = FontWeight.Black, color = Color.White)
+            Text(text = "${chargingState.batteryPercent}%", fontSize = 40.sp, fontWeight = FontWeight.Black, color = Color.White)
             Spacer(modifier = Modifier.height(4.dp))
             LinearProgressIndicator(
                 progress = { chargingState.batteryPercent / 100f },
@@ -282,7 +282,7 @@ fun TimerStandByWidget(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = "TIMER", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = accentColor, letterSpacing = 1.5.sp)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = timer.formattedRemaining, fontSize = 42.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
+            Text(text = timer.formattedRemaining, fontSize = 34.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
             LinearProgressIndicator(
                 progress = { timer.progress },
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
@@ -329,7 +329,7 @@ fun StopwatchStandByWidget(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = "STOPWATCH", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = accentColor, letterSpacing = 1.5.sp)
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = sw.formattedElapsed, fontSize = 34.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
+            Text(text = sw.formattedElapsed, fontSize = 30.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
             Spacer(modifier = Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
@@ -388,7 +388,7 @@ fun PomodoroStandByWidget(
                 Text(text = "★ ${pomo.completedCount} DONE", fontSize = 10.sp, color = Color.Gray)
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = pomo.formattedRemaining, fontSize = 40.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
+            Text(text = pomo.formattedRemaining, fontSize = 34.sp, fontWeight = FontWeight.Black, color = Color.White, fontFamily = FontFamily.Monospace)
             LinearProgressIndicator(
                 progress = { pomo.progress },
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
