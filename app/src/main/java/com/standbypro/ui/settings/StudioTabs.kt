@@ -27,8 +27,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.DoNotDisturbOn
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
@@ -63,6 +66,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -634,6 +638,45 @@ fun LazyListScope.behaviourTab(viewModel: StandByViewModel, settings: StandBySet
             ToggleRow("Require landscape", "Only when the phone is on its side", settings.requireLandscape, { viewModel.setRequireLandscape(it) })
             RowDivider()
             ToggleRow("Require locked", "Only when the screen is off or locked", settings.requireScreenLocked, { viewModel.setRequireScreenLocked(it) })
+        }
+    }
+    item(key = "b_bedtime") {
+        val context = LocalContext.current
+        val resumeTick by viewModel.resumeTick.collectAsState()
+        val dndGranted = remember(resumeTick) { viewModel.isDndGranted() }
+        StudioSection(
+            "Bedtime & battery",
+            footer = "Sleep sounds, the sleep timer and the night light are behind the moon button on the StandBy display."
+        ) {
+            SubLabel("Sunrise wake light")
+            ChipRow(listOf(0, 10, 20, 30), { it == settings.sunriseMinutes }, { if (it == 0) "Off" else "$it min before alarm" }, { viewModel.setSunriseMinutes(it) }, Ink.Orange)
+            Text(
+                "The display glows from deep red to warm daylight before your next alarm.",
+                color = Ink.TextTertiary, fontSize = 12.sp, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 6.dp)
+            )
+            RowDivider()
+            ToggleRow(
+                "Do Not Disturb at night", "Priority only while night mode is on; alarms still ring",
+                settings.autoDnd,
+                { on ->
+                    viewModel.setAutoDnd(on)
+                    if (on && !dndGranted) context.startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                },
+                icon = Icons.Default.DoNotDisturbOn, iconTint = Ink.Indigo
+            )
+            if (settings.autoDnd && !dndGranted) {
+                NavRow("Allow Do Not Disturb access", "Required to switch Do Not Disturb", icon = Icons.Default.Bedtime, iconTint = Ink.Red) {
+                    context.startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
+                }
+            }
+            RowDivider()
+            SubLabel("Charge limit alert")
+            ChipRow(listOf(0, 80, 85, 90, 100), { it == settings.chargeLimitPercent }, { if (it == 0) "Off" else "$it%" }, { viewModel.setChargeLimit(it) }, Ink.Green)
+            Row(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.BatteryChargingFull, null, tint = Ink.TextTertiary, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Notifies you to unplug when charging reaches the limit — keeping lithium cells below 100% slows wear.", color = Ink.TextTertiary, fontSize = 12.sp)
+            }
         }
     }
     item(key = "b_demo") {

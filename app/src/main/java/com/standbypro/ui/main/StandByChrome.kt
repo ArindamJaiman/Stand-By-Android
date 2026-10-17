@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Timer
@@ -106,7 +107,13 @@ fun LiveActivityPill(activity: LiveActivityState?, accent: Color, modifier: Modi
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(if (a is LiveActivityState.MusicActivity) Icons.Default.MusicNote else Icons.Default.Timer, null, tint = accent, modifier = Modifier.size(16.dp))
+            val icon = when (a) {
+                is LiveActivityState.MusicActivity -> Icons.Default.MusicNote
+                is LiveActivityState.EventActivity -> Icons.Default.Event
+                else -> Icons.Default.Timer
+            }
+            val tint = (a as? LiveActivityState.EventActivity)?.colorArgb?.let { Color(it) } ?: accent
+            Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
             Text(a.title, color = Ink.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             Text(a.subtitle, color = Ink.TextSecondary, fontSize = 12.sp, maxLines = 1)
             val p = a.progress

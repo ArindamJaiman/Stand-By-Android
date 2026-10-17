@@ -22,7 +22,8 @@ enum class WidgetCategory(val displayName: String) {
     PHOTO("Photos"),
     NOTIFICATIONS("Notifications"),
     PRODUCTIVITY("Productivity"),
-    INSPIRATION("Inspiration")
+    INSPIRATION("Inspiration"),
+    WELLBEING("Wellbeing")
 }
 
 /**

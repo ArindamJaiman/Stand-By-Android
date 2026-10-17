@@ -11,11 +11,14 @@ import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.standbypro.MainActivity
+import com.standbypro.R
+import com.standbypro.appwidget.StandByAppWidget
 import com.standbypro.domain.StandByController
 import com.standbypro.domain.StandByState
 import com.standbypro.hardware.ChargingStateMonitor
 import com.standbypro.hardware.OrientationMonitor
 import com.standbypro.hardware.ScreenLockMonitor
+import com.standbypro.power.ChargeLimitWatcher
 import com.standbypro.settings.SettingsRepository
 import com.standbypro.settings.dataStore
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +27,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class StandByService : Service() {
@@ -33,6 +39,8 @@ class StandByService : Service() {
 
     private lateinit var standByController: StandByController
     private lateinit var chargingMonitor: ChargingStateMonitor
+    private lateinit var settingsRepository: SettingsRepository
+    private val chargeLimitWatcher = ChargeLimitWatcher()
 
     private var chargingWakeLock: PowerManager.WakeLock? = null
     private var isStandByActive = false
@@ -44,13 +52,15 @@ class StandByService : Service() {
         const val FULLSCREEN_CHANNEL_ID = "standby_fullscreen_channel"
         const val NOTIFICATION_ID = 1
         const val NOTIFICATION_FULLSCREEN_ID = 2
+        const val BATTERY_CHANNEL_ID = "standby_battery_alerts"
+        const val NOTIFICATION_CHARGE_LIMIT_ID = 3
         const val ACTION_EXIT_STANDBY = "com.standbypro.ACTION_EXIT_STANDBY"
     }
 
     override fun onCreate() {
         super.onCreate()
 
-        val settingsRepository = SettingsRepository(applicationContext.dataStore)
+        settingsRepository = SettingsRepository(applicationContext.dataStore)
         chargingMonitor = ChargingStateMonitor(applicationContext)
         val orientationMonitor = OrientationMonitor(applicationContext)
         val screenLockMonitor = ScreenLockMonitor(applicationContext)
@@ -70,6 +80,25 @@ class StandByService : Service() {
     }
 
     private fun monitorState() {
+        // Home-screen widget shows the charging bolt.
+        scope.launch {
+            chargingMonitor.chargingState.map { it.isCharging }.distinctUntilChanged().collect {
+                StandByAppWidget.updateAll(applicationContext)
+            }
+        }
+
+        // Battery-health charge limit.
+        scope.launch {
+            val limits = settingsRepository.settingsFlow.map { it.chargeLimitPercent }.distinctUntilChanged()
+            combine(chargingMonitor.chargingState, limits) { state, limit -> state to limit }.collect { (state, limit) ->
+                if (chargeLimitWatcher.update(state.isCharging, state.batteryPercent, limit)) {
+                    notifyChargeLimit(state.batteryPercent)
+                } else if (!state.isCharging) {
+                    getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_CHARGE_LIMIT_ID)
+                }
+            }
+        }
+
         // 1. Maintain a partial wake lock while device is charging so CPU does not
         // suspend sensors when the user presses the power button to turn screen off.
         scope.launch {
@@ -214,6 +243,18 @@ class StandByService : Service() {
         }
     }
 
+    private fun notifyChargeLimit(percent: Int) {
+        val notification = NotificationCompat.Builder(this, BATTERY_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_charging)
+            .setContentTitle("Battery at $percent%")
+            .setContentText("Unplug now to keep your battery healthy.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setAutoCancel(true)
+            .build()
+        getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_CHARGE_LIMIT_ID, notification)
+    }
+
     private fun createNotification(isCharging: Boolean = false): Notification {
         val title = if (isCharging) "StandBy Pro • Ready" else "StandBy Pro • Hibernating"
         val text = if (isCharging) {
@@ -273,6 +314,17 @@ class StandByService : Service() {
             setShowBadge(false)
         }
         manager.createNotificationChannel(activationChannel)
+
+        // 3. Charge-limit alerts (audible, so the user hears it from across the room)
+        val batteryChannel = NotificationChannel(
+            BATTERY_CHANNEL_ID,
+            getString(R.string.channel_battery_alerts),
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Tells you when charging reaches your battery-health limit"
+            setShowBadge(false)
+        }
+        manager.createNotificationChannel(batteryChannel)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

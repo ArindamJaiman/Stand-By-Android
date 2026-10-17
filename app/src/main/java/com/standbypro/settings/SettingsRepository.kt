@@ -88,6 +88,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val FACE_SHUFFLE = intPreferencesKey("face_shuffle_minutes")
         val HOURLY_CHIME = booleanPreferencesKey("hourly_chime")
         val NIGHT_BLACKOUT = booleanPreferencesKey("night_blackout")
+        val SUNRISE_MINUTES = intPreferencesKey("sunrise_minutes")
+        val AUTO_DND = booleanPreferencesKey("auto_dnd")
+        val CHARGE_LIMIT = intPreferencesKey("charge_limit_percent")
         val DEMO_MODE_ENABLED = booleanPreferencesKey("demo_mode_enabled")
         val SIMULATE_CHARGING = booleanPreferencesKey("simulate_charging")
         val SIMULATE_NIGHT = booleanPreferencesKey("simulate_night")
@@ -156,6 +159,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
             faceShuffleMinutes = p[Keys.FACE_SHUFFLE] ?: d.faceShuffleMinutes,
             hourlyChime = p[Keys.HOURLY_CHIME] ?: d.hourlyChime,
             nightBlackout = p[Keys.NIGHT_BLACKOUT] ?: d.nightBlackout,
+            sunriseMinutes = p[Keys.SUNRISE_MINUTES] ?: d.sunriseMinutes,
+            autoDnd = p[Keys.AUTO_DND] ?: d.autoDnd,
+            chargeLimitPercent = p[Keys.CHARGE_LIMIT] ?: d.chargeLimitPercent,
             demoModeEnabled = p[Keys.DEMO_MODE_ENABLED] ?: d.demoModeEnabled,
             simulateCharging = p[Keys.SIMULATE_CHARGING] ?: d.simulateCharging,
             simulateNight = p[Keys.SIMULATE_NIGHT] ?: d.simulateNight
@@ -249,6 +255,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setFaceShuffle(minutes: Int) = edit { it[Keys.FACE_SHUFFLE] = minutes }
     suspend fun setHourlyChime(v: Boolean) = edit { it[Keys.HOURLY_CHIME] = v }
     suspend fun setNightBlackout(v: Boolean) = edit { it[Keys.NIGHT_BLACKOUT] = v }
+    suspend fun setSunriseMinutes(v: Int) = edit { it[Keys.SUNRISE_MINUTES] = v }
+    suspend fun setAutoDnd(v: Boolean) = edit { it[Keys.AUTO_DND] = v }
+    suspend fun setChargeLimit(v: Int) = edit { it[Keys.CHARGE_LIMIT] = v }
     suspend fun setDemoModeEnabled(v: Boolean) = edit { it[Keys.DEMO_MODE_ENABLED] = v }
     suspend fun setSimulateCharging(v: Boolean) = edit { it[Keys.SIMULATE_CHARGING] = v }
     suspend fun setSimulateNight(v: Boolean) = edit { it[Keys.SIMULATE_NIGHT] = v }

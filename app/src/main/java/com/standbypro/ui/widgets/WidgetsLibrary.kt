@@ -117,11 +117,11 @@ fun WidgetTile(
 }
 
 @Composable
-private fun TileHeader(text: String, color: Color, modifier: Modifier = Modifier) {
+internal fun TileHeader(text: String, color: Color, modifier: Modifier = Modifier) {
     AutoSizeText(text.uppercase(), labelStyle(FontWeight.Bold), modifier, color = color, sizingText = "UPCOMING EVENTS", alignment = Alignment.CenterStart)
 }
 
-private val plainLabel: TextStyle get() = labelStyle(FontWeight.SemiBold).copy(letterSpacing = TextStyle.Default.letterSpacing)
+internal val plainLabel: TextStyle get() = labelStyle(FontWeight.SemiBold).copy(letterSpacing = TextStyle.Default.letterSpacing)
 
 // ---------------------------------------------------------------------------------------------
 // Clock widgets

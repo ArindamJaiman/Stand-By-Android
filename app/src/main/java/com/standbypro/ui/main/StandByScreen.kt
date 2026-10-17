@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.DarkMode
@@ -48,6 +49,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -107,6 +109,35 @@ fun StandByScreen(
     var pickerVisible by remember { mutableStateOf(false) }
     var lastTouch by remember { mutableIntStateOf(0) }
     var chargingSplash by remember { mutableStateOf(settings.showChargingAnimation && ambient.isCharging) }
+    val sound by viewModel.sound.collectAsState()
+    val sunrise by viewModel.sunriseProgress.collectAsState()
+    var sleepVisible by remember { mutableStateOf(false) }
+    var nightLight by remember { mutableStateOf(false) }
+    var lightLevel by remember { mutableFloatStateOf(0.6f) }
+    var lightWarmth by remember { mutableFloatStateOf(0.25f) }
+    var sunriseDismissedFor by remember { mutableStateOf<Long?>(null) }
+    val sunriseLevel = if (sunriseDismissedFor != null && sunriseDismissedFor == ctx.nextAlarmMillis) 0f else sunrise
+
+    // Night light and sunrise light take over the window brightness.
+    LaunchedEffect(nightLight, lightLevel, sunriseLevel) {
+        viewModel.setBrightnessOverride(
+            when {
+                nightLight -> lightLevel
+                sunriseLevel > 0f -> 0.02f + 0.98f * sunriseLevel * sunriseLevel
+                else -> null
+            }
+        )
+    }
+    // Priority-only Do Not Disturb while the display is in night mode.
+    LaunchedEffect(ambient.isNight, settings.autoDnd) {
+        viewModel.applyNightDnd(ambient.isNight && settings.autoDnd)
+    }
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.setBrightnessOverride(null)
+            viewModel.applyNightDnd(false)
+        }
+    }
 
     // Auto-hide chrome a few seconds after the last touch.
     LaunchedEffect(controlsVisible, lastTouch) {
@@ -163,110 +194,140 @@ fun StandByScreen(
         lastTouch++
     }
 
-    Box(
-        modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .nightFilter(ambient.nightStyle, nightStrength)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = {
+    Box(modifier.fillMaxSize()) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .nightFilter(ambient.nightStyle, nightStrength)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = {
+                            touched()
+                            if (pickerVisible || sleepVisible) {
+                                pickerVisible = false
+                                sleepVisible = false
+                            } else controlsVisible = !controlsVisible
+                        },
+                        onDoubleTap = {
+                            touched()
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.cycleWatchFace()
+                        },
+                        onLongPress = {
+                            touched()
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            pickerVisible = true
+                            controlsVisible = false
+                        }
+                    )
+                }
+        ) {
+            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                Box(
+                    Modifier.fillMaxSize().offset { offset }.padding(horizontal = 22.dp, vertical = 14.dp)
+                ) {
+                    when (pages[page]) {
+                        StandByPage.DASHBOARD -> AmbientCompositor(ambient, ctx, Modifier.fillMaxSize())
+                        StandByPage.STACKS -> SmartStacks(ctx, settings.leftStack, settings.rightStack, settings.smartRotate, Modifier.fillMaxSize())
+                        StandByPage.PHOTOS -> PhotoClockFace(ctx, Modifier.fillMaxSize())
+                        StandByPage.CLOCK -> FaceCarousel(viewModel, ctx, settings.activeWatchFaceId, Modifier.fillMaxSize())
+                    }
+                }
+            }
+
+            LiveActivityPill(ambient.liveActivity, ambient.activeThemeColor, Modifier.align(Alignment.TopCenter).padding(top = 10.dp))
+            NotificationBadge(ambient.notificationState, Modifier.align(Alignment.BottomStart).padding(start = 22.dp, bottom = 10.dp))
+
+            // Dim overlay (inactivity)
+            if (dimAlpha > 0.01f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dimAlpha)))
+
+            // Page dots
+            AnimatedVisibility(controlsVisible, Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp), enter = fadeIn(), exit = fadeOut()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                    pages.forEachIndexed { i, _ ->
+                        val selected = pagerState.currentPage == i
+                        Box(Modifier.height(7.dp).width(if (selected) 20.dp else 7.dp).clip(RoundedCornerShape(50)).background(if (selected) Color.White else Color.White.copy(alpha = 0.3f)))
+                    }
+                }
+            }
+
+            // Top controls
+            AnimatedVisibility(
+                controlsVisible,
+                Modifier.align(Alignment.TopCenter).fillMaxWidth(),
+                enter = fadeIn() + slideInVertically { -it / 2 },
+                exit = fadeOut() + slideOutVertically { -it / 2 }
+            ) {
+                ControlsBar(
+                    pageLabel = pages[pagerState.currentPage].label,
+                    faceName = WatchFaceRegistry.getById(settings.activeWatchFaceId).name,
+                    brightness = settings.brightnessLevel,
+                    isNight = ambient.isNight,
+                    accent = ambient.activeThemeColor,
+                    onExit = onExit,
+                    onStudio = onOpenStudio,
+                    onBrightness = { touched(); viewModel.setBrightnessLevel(it) },
+                    onToggleNight = {
                         touched()
-                        if (pickerVisible) pickerVisible = false else controlsVisible = !controlsVisible
+                        if (settings.demoModeEnabled) viewModel.setSimulateNight(!settings.simulateNight)
+                        else viewModel.setNightModeEnabled(!settings.nightModeEnabled)
                     },
-                    onDoubleTap = {
+                    onCycleTheme = {
                         touched()
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.cycleWatchFace()
+                        val all = StandByColorTheme.entries
+                        val idx = all.indexOfFirst { it.id == settings.colorThemeId }
+                        viewModel.setColorTheme(all[(idx + 1) % all.size].id)
                     },
-                    onLongPress = {
+                    onFaces = { touched(); pickerVisible = true; controlsVisible = false },
+                    onSleep = { touched(); sleepVisible = true; pickerVisible = false; controlsVisible = false },
+                    onSpeak = { touched(); speaker.speak(ctx.time.hour, ctx.time.minute) }
+                )
+            }
+
+            // Long-press favourites picker
+            AnimatedVisibility(pickerVisible, Modifier.align(Alignment.BottomCenter), enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it }) {
+                FavoritesPicker(
+                    ctx = ctx,
+                    activeId = settings.activeWatchFaceId,
+                    favorites = viewModel.favoriteFaces(settings),
+                    onPick = { id ->
                         touched()
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        pickerVisible = true
-                        controlsVisible = false
+                        viewModel.setActiveWatchFaceId(id)
+                        scope.launch {
+                            delay(250L)
+                            pickerVisible = false
+                        }
                     }
                 )
             }
-    ) {
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-            Box(
-                Modifier.fillMaxSize().offset { offset }.padding(horizontal = 22.dp, vertical = 14.dp)
-            ) {
-                when (pages[page]) {
-                    StandByPage.DASHBOARD -> AmbientCompositor(ambient, ctx, Modifier.fillMaxSize())
-                    StandByPage.STACKS -> SmartStacks(ctx, settings.leftStack, settings.rightStack, settings.smartRotate, Modifier.fillMaxSize())
-                    StandByPage.PHOTOS -> PhotoClockFace(ctx, Modifier.fillMaxSize())
-                    StandByPage.CLOCK -> FaceCarousel(viewModel, ctx, settings.activeWatchFaceId, Modifier.fillMaxSize())
-                }
+
+            // Bedtime sheet: sounds, sleep timer, night light
+            AnimatedVisibility(sleepVisible, Modifier.align(Alignment.BottomCenter), enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it }) {
+                SleepPanel(
+                    ctx = ctx,
+                    sound = sound,
+                    sunriseMinutes = settings.sunriseMinutes,
+                    nowMillis = System.currentTimeMillis(),
+                    onSound = { touched(); viewModel.playSound(it) },
+                    onVolume = { touched(); viewModel.setSoundVolume(it) },
+                    onSleepTimer = { touched(); viewModel.startSleepTimer(it) },
+                    onNightLight = { touched(); sleepVisible = false; nightLight = true },
+                    onClose = { touched(); sleepVisible = false }
+                )
+            }
+
+            ChargingOverlay(chargingSplash, ctx.battery) { chargingSplash = false }
+        }
+
+        // Outside the night filter so their colours stay true.
+        SunriseOverlay(sunriseLevel, ctx) { sunriseDismissedFor = ctx.nextAlarmMillis }
+        if (nightLight) {
+            NightLightOverlay(lightLevel, lightWarmth, onChange = { l, w -> lightLevel = l; lightWarmth = w }) {
+                touched()
+                nightLight = false
             }
         }
-
-        LiveActivityPill(ambient.liveActivity, ambient.activeThemeColor, Modifier.align(Alignment.TopCenter).padding(top = 10.dp))
-        NotificationBadge(ambient.notificationState, Modifier.align(Alignment.BottomStart).padding(start = 22.dp, bottom = 10.dp))
-
-        // Dim overlay (inactivity)
-        if (dimAlpha > 0.01f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dimAlpha)))
-
-        // Page dots
-        AnimatedVisibility(controlsVisible, Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp), enter = fadeIn(), exit = fadeOut()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                pages.forEachIndexed { i, _ ->
-                    val selected = pagerState.currentPage == i
-                    Box(Modifier.height(7.dp).width(if (selected) 20.dp else 7.dp).clip(RoundedCornerShape(50)).background(if (selected) Color.White else Color.White.copy(alpha = 0.3f)))
-                }
-            }
-        }
-
-        // Top controls
-        AnimatedVisibility(
-            controlsVisible,
-            Modifier.align(Alignment.TopCenter).fillMaxWidth(),
-            enter = fadeIn() + slideInVertically { -it / 2 },
-            exit = fadeOut() + slideOutVertically { -it / 2 }
-        ) {
-            ControlsBar(
-                pageLabel = pages[pagerState.currentPage].label,
-                faceName = WatchFaceRegistry.getById(settings.activeWatchFaceId).name,
-                brightness = settings.brightnessLevel,
-                isNight = ambient.isNight,
-                accent = ambient.activeThemeColor,
-                onExit = onExit,
-                onStudio = onOpenStudio,
-                onBrightness = { touched(); viewModel.setBrightnessLevel(it) },
-                onToggleNight = {
-                    touched()
-                    if (settings.demoModeEnabled) viewModel.setSimulateNight(!settings.simulateNight)
-                    else viewModel.setNightModeEnabled(!settings.nightModeEnabled)
-                },
-                onCycleTheme = {
-                    touched()
-                    val all = StandByColorTheme.entries
-                    val idx = all.indexOfFirst { it.id == settings.colorThemeId }
-                    viewModel.setColorTheme(all[(idx + 1) % all.size].id)
-                },
-                onFaces = { touched(); pickerVisible = true; controlsVisible = false },
-                onSpeak = { touched(); speaker.speak(ctx.time.hour, ctx.time.minute) }
-            )
-        }
-
-        // Long-press favourites picker
-        AnimatedVisibility(pickerVisible, Modifier.align(Alignment.BottomCenter), enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it }) {
-            FavoritesPicker(
-                ctx = ctx,
-                activeId = settings.activeWatchFaceId,
-                favorites = viewModel.favoriteFaces(settings),
-                onPick = { id ->
-                    touched()
-                    viewModel.setActiveWatchFaceId(id)
-                    scope.launch {
-                        delay(250L)
-                        pickerVisible = false
-                    }
-                }
-            )
-        }
-
-        ChargingOverlay(chargingSplash, ctx.battery) { chargingSplash = false }
     }
 }
 
@@ -342,6 +403,7 @@ private fun ControlsBar(
     onToggleNight: () -> Unit,
     onCycleTheme: () -> Unit,
     onFaces: () -> Unit,
+    onSleep: () -> Unit,
     onSpeak: () -> Unit
 ) {
     var local by remember(brightness) { mutableFloatStateOf(brightness) }
@@ -370,6 +432,7 @@ private fun ControlsBar(
             Icon(Icons.Default.BrightnessHigh, null, tint = Ink.TextSecondary, modifier = Modifier.size(16.dp))
         }
         RoundChip(if (isNight) Icons.Default.LightMode else Icons.Default.DarkMode, "Night mode", onToggleNight, active = isNight, accent = Ink.Red)
+        RoundChip(Icons.Default.Bedtime, "Sleep sounds and night light", onSleep)
         RoundChip(Icons.Default.RecordVoiceOver, "Speak the time", onSpeak)
         RoundChip(Icons.Default.Palette, "Accent colour", onCycleTheme, accent = accent)
         RoundChip(Icons.Default.Star, "Favourite faces", onFaces)

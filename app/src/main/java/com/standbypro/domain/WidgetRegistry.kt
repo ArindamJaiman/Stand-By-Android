@@ -27,6 +27,7 @@ object WidgetRegistry {
         widget("widget_agenda", "Up Next", WidgetCategory.CALENDAR, "Upcoming events from your calendars") { c, m -> AgendaWidget(c, m) },
         widget("widget_weather", "Weather", WidgetCategory.WEATHER, "Current conditions with an hourly strip") { c, m -> WeatherWidget(c, m) },
         widget("widget_forecast", "Forecast", WidgetCategory.WEATHER, "Five-day forecast with range bars") { c, m -> ForecastWidget(c, m) },
+        widget("widget_air_quality", "Air Quality", WidgetCategory.WEATHER, "Live US AQI, PM2.5 and UV index") { c, m -> AirQualityWidget(c, m) },
         widget("widget_music", "Now Playing", WidgetCategory.MUSIC, "Album art, progress and controls for any media app") { c, m -> MusicWidget(c, m) },
         widget("widget_battery", "Battery", WidgetCategory.BATTERY, "Charge ring, source, temperature and time to full") { c, m -> BatteryWidget(c, m) },
         widget("widget_alarm", "Next Alarm", WidgetCategory.ALARM, "Your next system alarm with countdown") { c, m -> AlarmWidget(c, m) },
@@ -42,6 +43,7 @@ object WidgetRegistry {
         widget("widget_sun", "Sun", WidgetCategory.ASTRONOMY, "Sunrise, sunset and the sun's position") { c, m -> SunWidget(c, m) },
         widget("widget_photos", "Photos", WidgetCategory.PHOTO, "Slideshow of your favourite photos") { c, m -> PhotoWidget(c, m) },
         widget("widget_quote", "Quote", WidgetCategory.INSPIRATION, "A new quote every day") { c, m -> QuoteWidget(c, m) },
+        widget("widget_breathe", "Breathe", WidgetCategory.WELLBEING, "Guided box breathing to wind down") { c, m -> BreatheWidget(c, m) },
         widget("widget_system", "System", WidgetCategory.SYSTEM, "Memory, storage and uptime") { c, m -> SystemWidget(c, m) },
         widget("widget_github", "GitHub", WidgetCategory.GITHUB, "Contribution heatmap, streak and yearly total") { c, m -> GitHubWidget(c, m) }
     )

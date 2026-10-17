@@ -19,6 +19,7 @@ data class FaceContext(
     val secondsMotion: SecondsMotion = SecondsMotion.SWEEP,
     val battery: ChargingState = ChargingState(),
     val weather: WeatherData? = null,
+    val airQuality: AirQuality? = null,
     val useFahrenheit: Boolean = false,
     val nextAlarm: String? = null,
     val nextAlarmTime: String? = null,

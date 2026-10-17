@@ -129,7 +129,7 @@ object WeatherRepository {
             "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max,precipitation_probability_max" +
             "&timezone=auto&forecast_days=7"
 
-    private fun download(url: String): String? {
+    internal fun download(url: String): String? {
         var connection: HttpURLConnection? = null
         return try {
             connection = (URL(url).openConnection() as HttpURLConnection).apply {

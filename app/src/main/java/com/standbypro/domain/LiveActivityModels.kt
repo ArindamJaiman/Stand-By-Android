@@ -32,6 +32,18 @@ sealed interface LiveActivityState {
         override val iconName: String = "MusicNote"
     ) : LiveActivityState
 
+    /** A calendar event that is about to start (or just started). */
+    data class EventActivity(
+        override val id: String = "event_upcoming",
+        override val title: String,
+        override val subtitle: String,
+        override val progress: Float? = null,
+        override val timestamp: String = "Soon",
+        override val status: String = "Up next",
+        override val iconName: String = "Event",
+        val colorArgb: Int? = null
+    ) : LiveActivityState
+
     data class SportsActivity(
         override val id: String = "sports_active",
         override val title: String = "Champions League",

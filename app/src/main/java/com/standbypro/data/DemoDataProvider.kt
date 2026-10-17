@@ -50,6 +50,8 @@ object DemoDataProvider {
         )
     )
 
+    val demoAirQuality = com.standbypro.domain.AirQuality(usAqi = 42, pm25 = 9.8, pm10 = 18.0, ozone = 61.0, uvIndex = 5.2)
+
     val demoCalendarEvents = listOf(
         CalendarEventItem("ev_1", "Sprint Sync & Architecture Review", "10:30 AM - 11:30 AM", "Room 4B / Meet", false, "#00E5FF"),
         CalendarEventItem("ev_2", "Design Critique: StandBy Ambient Mode", "02:00 PM - 03:00 PM", "Studio Alpha", false, "#30D158"),

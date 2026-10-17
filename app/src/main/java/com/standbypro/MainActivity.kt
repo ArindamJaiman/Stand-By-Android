@@ -86,12 +86,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by viewModel.settings.collectAsState()
             val ambient by viewModel.ambientDisplayState.collectAsState()
+            val brightnessOverride by viewModel.brightnessOverride.collectAsState()
 
-            LaunchedEffect(isStandByActive, settings.brightnessLevel, ambient.isNight) {
+            LaunchedEffect(isStandByActive, settings.brightnessLevel, ambient.isNight, brightnessOverride) {
                 val lp = window.attributes
+                val forced = brightnessOverride
                 lp.screenBrightness = if (isStandByActive) {
                     val level = settings.brightnessLevel.coerceIn(0.01f, 1.0f)
-                    if (ambient.isNight) level.coerceAtMost(0.06f) else level
+                    if (forced != null) forced.coerceIn(0.01f, 1.0f)
+                    else if (ambient.isNight) level.coerceAtMost(0.06f) else level
                 } else {
                     WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                 }
@@ -137,6 +140,7 @@ class MainActivity : ComponentActivity() {
 
     private fun leaveStandBy() {
         viewModel.setBedsideSession(false)
+        viewModel.endStandBySession()
         configureImmersiveStandBy(false)
         if (isAutoStarted) finish() else isStandByActive = false
     }
@@ -147,12 +151,14 @@ class MainActivity : ComponentActivity() {
         if (isAutoStarted && keyguard?.isKeyguardLocked == true) {
             keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
                 override fun onDismissSucceeded() {
+                    viewModel.endStandBySession()
                     isAutoStarted = false
                     configureImmersiveStandBy(false)
                     isStandByActive = false
                 }
             })
         } else {
+            viewModel.endStandBySession()
             isAutoStarted = false
             configureImmersiveStandBy(false)
             isStandByActive = false

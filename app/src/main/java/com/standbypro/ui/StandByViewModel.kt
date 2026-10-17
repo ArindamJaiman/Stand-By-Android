@@ -13,7 +13,11 @@ import android.os.VibratorManager
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.standbypro.audio.SleepSound
+import com.standbypro.audio.SoundMachine
+import com.standbypro.audio.SoundState
 import com.standbypro.clock.TimeProvider
+import com.standbypro.data.AirQualityRepository
 import com.standbypro.data.AlarmRepository
 import com.standbypro.data.CalendarRepository
 import com.standbypro.data.CityResult
@@ -26,6 +30,7 @@ import com.standbypro.data.Place
 import com.standbypro.data.ProductivityRepository
 import com.standbypro.data.TasksRepository
 import com.standbypro.data.WeatherRepository
+import com.standbypro.domain.AirQuality
 import com.standbypro.domain.BatteryHealth
 import com.standbypro.domain.CalendarEventItem
 import com.standbypro.domain.ChargeType
@@ -35,6 +40,7 @@ import com.standbypro.domain.FaceContext
 import com.standbypro.domain.LiveActivityState
 import com.standbypro.domain.NotificationDisplayState
 import com.standbypro.domain.NotificationPrivacy
+import com.standbypro.domain.UpNext
 import com.standbypro.domain.WatchFaceRegistry
 import com.standbypro.domain.WeatherData
 import com.standbypro.domain.WidgetRegistry
@@ -45,6 +51,7 @@ import com.standbypro.notifications.NotificationRepository
 import com.standbypro.power.AutoDimController
 import com.standbypro.power.BurnInOffset
 import com.standbypro.power.BurnInProtectionController
+import com.standbypro.power.DndController
 import com.standbypro.settings.NightTrigger
 import com.standbypro.settings.SettingsRepository
 import com.standbypro.settings.StandByPage
@@ -144,16 +151,34 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
 
     val nextAlarm: StateFlow<NextAlarm?> = AlarmRepository.nextAlarm
 
+    val airQuality: StateFlow<AirQuality?> = combine(settings, AirQualityRepository.airQuality) { s, a ->
+        if (s.demoModeEnabled && a == null) DemoDataProvider.demoAirQuality else a
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val sound: StateFlow<SoundState> = SoundMachine.state
+
+    /** 0..1 while the sunrise wake light is ramping up before the next alarm. */
+    val sunriseProgress: StateFlow<Float> = combine(settings, currentTime, nextAlarm) { s, _, alarm ->
+        sunriseProgress(System.currentTimeMillis(), alarm?.triggerAtMillis, s.sunriseMinutes)
+    }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0f)
+
+    private val _brightnessOverride = kotlinx.coroutines.flow.MutableStateFlow<Float?>(null)
+    /** Window brightness forced by the night light or sunrise light; null = normal rules. */
+    val brightnessOverride: StateFlow<Float?> = _brightnessOverride
+
+    fun setBrightnessOverride(level: Float?) {
+        _brightnessOverride.value = level
+    }
+
     val calendarPermission: StateFlow<Boolean> = CalendarRepository.hasPermission
     val notificationAccess: StateFlow<Boolean> = NowPlayingRepository.accessGranted
     val weatherRefreshing: StateFlow<Boolean> = WeatherRepository.isRefreshing
 
-    private val liveActivity: StateFlow<LiveActivityState?> = combine(
+    private val productivityActivity = combine(
         ProductivityRepository.timerState,
         ProductivityRepository.pomodoroState,
-        ProductivityRepository.stopwatchState,
-        NowPlayingRepository.state
-    ) { timer, pomodoro, stopwatch, media ->
+        ProductivityRepository.stopwatchState
+    ) { timer, pomodoro, stopwatch ->
         when {
             timer.isRunning -> LiveActivityState.TimerActivity(subtitle = "${timer.formattedRemaining} remaining", progress = timer.progress, status = "Running")
             pomodoro.isRunning -> LiveActivityState.TimerActivity(
@@ -170,21 +195,35 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
                 progress = null,
                 status = "Running"
             )
-            media.hasSession && media.isPlaying -> LiveActivityState.MusicActivity(
+            else -> null
+        }
+    }
+
+    private val eventActivity = combine(events, currentTime.map { it.withSecond(0).withNano(0) }.distinctUntilChanged()) { ev, _ ->
+        val now = System.currentTimeMillis()
+        UpNext.eventFor(ev, now)?.let { e ->
+            LiveActivityState.EventActivity(title = e.title, subtitle = UpNext.startsIn(e, now), colorArgb = e.colorArgb)
+        }
+    }
+
+    /** Timers first, then a meeting that's about to start, then media. */
+    private val liveActivity: StateFlow<LiveActivityState?> = combine(productivityActivity, eventActivity, NowPlayingRepository.state) { work, event, media ->
+        work ?: event ?: if (media.hasSession && media.isPlaying) {
+            LiveActivityState.MusicActivity(
                 title = media.title.ifBlank { "Now Playing" },
                 subtitle = listOf(media.artist, media.appName).filter { it.isNotBlank() }.joinToString(" • "),
                 progress = null
             )
-            else -> null
-        }
+        } else null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /** Single source of truth for every face and widget. */
     val faceContext: StateFlow<FaceContext> = combine(
         combine(settings, currentTime, chargingState, weather, isNightMode) { s, t, c, w, n -> Base(s, t, c, w, n) },
         events,
-        nextAlarm
-    ) { base, ev, alarm ->
+        nextAlarm,
+        airQuality
+    ) { base, ev, alarm, air ->
         val s = base.settings
         val place = resolvePlace(s)
         FaceContext(
@@ -195,6 +234,7 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
             secondsMotion = s.secondsMotion,
             battery = base.charging,
             weather = base.weather,
+            airQuality = air,
             useFahrenheit = s.useFahrenheit,
             nextAlarm = alarm?.label,
             nextAlarmTime = alarm?.timeLabel,
@@ -251,6 +291,7 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             settings.map { resolvePlace(it) }.distinctUntilChanged().collect { place ->
                 WeatherRepository.refresh(app, place.city, place.latitude, place.longitude, force = true)
+                AirQualityRepository.refresh(place.latitude, place.longitude, force = true)
             }
         }
         viewModelScope.launch {
@@ -258,6 +299,7 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
                 delay(30 * 60 * 1000L)
                 val place = resolvePlace(settings.value)
                 WeatherRepository.refresh(app, place.city, place.latitude, place.longitude)
+                AirQualityRepository.refresh(place.latitude, place.longitude)
             }
         }
         // Calendar + alarm: refresh every few minutes and whenever 12/24h changes.
@@ -298,6 +340,7 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             val place = resolvePlace(settings.value)
             WeatherRepository.refresh(app, place.city, place.latitude, place.longitude, force = true)
+            AirQualityRepository.refresh(place.latitude, place.longitude, force = true)
         }
     }
 
@@ -417,6 +460,32 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    // ---------------- Bedtime ----------------
+
+    fun playSound(sound: SleepSound?) = if (sound == null) SoundMachine.stop() else SoundMachine.play(sound)
+    fun setSoundVolume(v: Float) = SoundMachine.setVolume(v)
+    fun startSleepTimer(minutes: Int) = SoundMachine.startSleepTimer(minutes)
+    fun setSunriseMinutes(v: Int) = launch { settingsRepository.setSunriseMinutes(v) }
+    fun setAutoDnd(v: Boolean) = launch { settingsRepository.setAutoDnd(v) }
+    fun setChargeLimit(v: Int) = launch { settingsRepository.setChargeLimit(v) }
+    fun isDndGranted(): Boolean = DndController.isGranted(app)
+
+    /** Priority-only Do Not Disturb while the StandBy display is in night mode. */
+    fun applyNightDnd(quiet: Boolean) = DndController.setQuiet(app, quiet)
+
+    /** Leaving StandBy: silence the sound machine and hand Do Not Disturb back. */
+    fun endStandBySession() {
+        SoundMachine.stop()
+        SoundMachine.cancelSleepTimer()
+        DndController.setQuiet(app, false)
+        _brightnessOverride.value = null
+    }
+
+    override fun onCleared() {
+        endStandBySession()
+        super.onCleared()
+    }
+
     // ---------------- Behaviour ----------------
 
     fun setEnabled(v: Boolean) = launch { settingsRepository.setEnabled(v) }
@@ -476,6 +545,22 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     }
 
     companion object {
+        /**
+         * Sunrise wake light: ramps 0→1 over the [windowMinutes] before the alarm, then holds full
+         * daylight for 15 minutes after it rings.
+         */
+        fun sunriseProgress(nowMillis: Long, alarmMillis: Long?, windowMinutes: Int): Float {
+            if (alarmMillis == null || windowMinutes <= 0) return 0f
+            val remaining = alarmMillis - nowMillis
+            val window = windowMinutes * 60_000L
+            return when {
+                remaining > window -> 0f
+                remaining > 0L -> 1f - remaining.toFloat() / window
+                remaining > -15 * 60_000L -> 1f
+                else -> 0f
+            }
+        }
+
         fun inWindow(minute: Int, start: Int, end: Int): Boolean =
             if (start == end) false else if (start < end) minute in start until end else minute >= start || minute < end
     }

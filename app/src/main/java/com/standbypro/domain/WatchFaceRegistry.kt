@@ -148,6 +148,7 @@ object WatchFaceRegistry {
         face("ambient_zen", "Zen Garden", WatchFaceCategory.AMBIENT, "Raked sand and slow ripples") { c, m -> ZenFace(c, m) },
         face("ambient_minimal_gradient", "Void", WatchFaceCategory.AMBIENT, "A breathing glow on pure black — the most restful face") { c, m -> MinimalGradientFace(c, m) },
         face("ambient_lava", "Lava Lamp", WatchFaceCategory.AMBIENT, "Warm wax blobs rising and falling", true) { c, m -> LavaLampFace(c, m) },
+        face("ambient_breathe", "Breathe", WatchFaceCategory.AMBIENT, "Guided box breathing: a bloom that grows as you inhale", true) { c, m -> BreathingFace(c, m) },
         face("ambient_tide", "Tide", WatchFaceCategory.AMBIENT, "Water rises through the hour; the hour floats inside", true) { c, m -> TideFace(c, m) },
 
         // ---------------- ARTISTIC ----------------

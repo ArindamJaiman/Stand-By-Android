@@ -137,6 +137,12 @@ data class StandBySettings(
     val hourlyChime: Boolean = false,
     /** At night, fade the display almost to black so only a faint clock remains. */
     val nightBlackout: Boolean = false,
+    /** Sunrise wake light: minutes before the next alarm the display starts to glow (0 = off). */
+    val sunriseMinutes: Int = 0,
+    /** Priority-only Do Not Disturb while StandBy is in night mode. */
+    val autoDnd: Boolean = false,
+    /** Notify when charging reaches this level to protect battery health (0 = off). */
+    val chargeLimitPercent: Int = 0,
 
     // Developer / demo simulation overrides
     val demoModeEnabled: Boolean = false,

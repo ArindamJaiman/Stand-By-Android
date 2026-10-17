@@ -1,7 +1,7 @@
 # 🌙 StandBy Pro for Android
 
 <p align="center">
-  <b>An iOS-style StandBy smart display for Android — 110+ watch faces, 24 live widgets, smart stacks and a true red night mode.</b><br>
+  <b>An iOS-style StandBy smart display for Android — 110+ watch faces, 26 live widgets, smart stacks, a true red night mode and a full bedside toolkit.</b><br>
   Built with Jetpack Compose and Material 3. No ads, no accounts, no trackers.
 </p>
 
@@ -25,6 +25,18 @@
 - **Face shuffle**: rotate through your favourite faces every 5–60 minutes while untouched.
 - **Talking clock**: one tap speaks the time ("It's quarter past seven").
 - **Hourly chime** (silent at night) and **Bedtime blackout** that fades the display almost to black at night.
+- **Up Next pill**: a meeting starting within 15 minutes appears in the Live Activity pill with its calendar colour.
+
+### Bedside toolkit
+- **Sleep sounds**: rain, ocean, fan, brown, pink and white noise — synthesised on the device, no audio files, with a volume slider.
+- **Sleep timer** (15 min – 1 h 30): fades the sounds out over 30 seconds and pauses whatever music or podcast app is playing.
+- **Sunrise wake light**: 10–30 minutes before your next alarm the display glows from deep red to warm daylight with a rising sun, and the screen brightens with it.
+- **Night light**: a full-screen warm light — drag up/down for brightness, sideways from amber to soft white, tap to turn off.
+- **Do Not Disturb at night**: switches to priority-only while night mode is on (alarms still ring) and restores it afterwards.
+- **Charge limit alert**: an audible notification when charging reaches 80/85/90/100% to protect battery health.
+- **Home-screen widget**: a resizable clock with date, next alarm and battery that never wakes the phone; tap it to start StandBy.
+
+Find the sound machine, timer and night light behind the moon button on the StandBy display; the rest lives in Studio → Behaviour → Bedtime & battery.
 
 ### 110+ watch faces in 14 families
 | Family | Highlights |
@@ -37,16 +49,17 @@
 | **Weather (6)** | Living Sky (animated real conditions), Weather Now, Hourly curve, Forecast bars, Thermo Dial, Sunrise & Sunset |
 | **Astronomy (3)** | Moon (real phase, next full/new), Orrery (planets where they are today), Night Sky |
 | **Productivity (7)** | Pomodoro, Timer, Stopwatch (working, with alarm chime), Deep Work, Progress, Countdown, Agenda |
-| **Ambient & Artistic (18)** | Aurora, Deep Cosmos, Moonlit Ocean, Firefly Forest, Alpine, Zen, Void, Lava Lamp, Tide, Bauhaus Shapes, Synthwave, Ensō, Orbits, Radar, Fibonacci clock, Pendulum, Hourglass, Spiral |
+| **Ambient & Artistic (19)** | Breathe (guided box breathing), Aurora, Deep Cosmos, Moonlit Ocean, Firefly Forest, Alpine, Zen, Void, Lava Lamp, Tide, Bauhaus Shapes, Synthwave, Ensō, Orbits, Radar, Fibonacci clock, Pendulum, Hourglass, Spiral |
 | **Photo (5)** & **Charging (2)** | Photo Frame / Clock / Weather / Agenda / Split, Charging Orb, Power Ring |
 
 Every face is a pure function of live data (time, battery, weather, calendar, alarms, locations) and scales from gallery thumbnails to tablets.
 
-### 24 widgets — all real data
-Analog & digital clocks · World clock · Month calendar · Up Next (device calendar) · Weather · 5-day forecast · **Now Playing** (album art + controls for Spotify, YouTube Music, podcasts…) · Battery (time to full, temperature) · Next alarm · Timer · Stopwatch · Pomodoro · Progress · Countdown · Reminders · Notes · Notifications (privacy-aware) · Moon · Sun · Photos · Quote of the day · System (RAM, storage, uptime) · GitHub heatmap
+### 26 widgets — all real data
+Analog & digital clocks · World clock · Month calendar · Up Next (device calendar) · Weather · 5-day forecast · **Air quality** (US AQI, PM2.5, UV) · Breathe · **Now Playing** (album art + controls for Spotify, YouTube Music, podcasts…) · Battery (time to full, temperature) · Next alarm · Timer · Stopwatch · Pomodoro · Progress · Countdown · Reminders · Notes · Notifications (privacy-aware) · Moon · Sun · Photos · Quote of the day · System (RAM, storage, uptime) · GitHub heatmap
 
 ### Live data sources
 - **Weather**: [Open-Meteo](https://open-meteo.com) (free, no key). City search, or automatic from your time zone — no location permission needed. Cached for offline starts.
+- **Air quality & UV**: Open-Meteo air-quality API (free, no key).
 - **Calendar**: device calendars via `CalendarContract` (read-only).
 - **Media & notifications**: `MediaSessionManager` + notification listener.
 - **Alarms**: `AlarmManager.nextAlarmClock` from any clock app.
@@ -78,8 +91,10 @@ A redesigned settings app with a live preview, a setup checklist for permissions
 
 ```
 app/src/main/java/com/standbypro
+├── appwidget/        Home-screen clock widget
 ├── astro/            Sun, moon and planet maths
-├── data/             Weather, calendar, alarms, tasks, timers, locations, GitHub
+├── audio/            Sleep-sound synthesis + sleep timer
+├── data/             Weather, air quality, calendar, alarms, tasks, timers, locations, GitHub
 ├── domain/           Models, FaceContext, face & widget registries
 ├── media/            Now Playing (MediaSession)
 ├── notifications/    Notification listener + repository
@@ -112,6 +127,7 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 2. Grant **notification access** for Now Playing and notification badges.
 3. Allow **calendar** access for agenda faces.
 4. Exclude StandBy from **battery optimisation** so the charging monitor stays alive.
+5. Optional: allow **Do Not Disturb access** if you turn on *Do Not Disturb at night*.
 
 ---
 

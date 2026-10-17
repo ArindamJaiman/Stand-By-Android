@@ -106,6 +106,12 @@ object NowPlayingRepository {
         if (c.playbackState?.state == PlaybackState.STATE_PLAYING) c.transportControls.pause() else c.transportControls.play()
     }
 
+    /** Used by the sleep timer: pauses only if something is actually playing. */
+    fun pause() {
+        val c = controller ?: return
+        if (c.playbackState?.state == PlaybackState.STATE_PLAYING) c.transportControls.pause()
+    }
+
     fun next() { controller?.transportControls?.skipToNext() }
 
     fun previous() { controller?.transportControls?.skipToPrevious() }

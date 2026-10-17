@@ -5,4 +5,8 @@
     <string name="shortcut_start_long">Start StandBy</string>
     <string name="shortcut_bedside">Bedside</string>
     <string name="shortcut_bedside_long">Start StandBy in night mode</string>
+    <string name="widget_label">StandBy Clock</string>
+    <string name="widget_description">Clock, next alarm and battery. Tap to start StandBy.</string>
+    <string name="widget_hint">Tap for StandBy</string>
+    <string name="channel_battery_alerts">Battery alerts</string>
 </resources>
