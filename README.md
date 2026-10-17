@@ -21,6 +21,10 @@
 - **Live Activity pill** for running timers, Pomodoro, stopwatch and now-playing media.
 - **Charging moment**: a glowing ring sweeps to your battery level when you plug in.
 - **Screen care**: slow burn-in drift, configurable auto-dim, per-frame-cheap rendering.
+- **Launch anywhere**: Quick Settings tile, plus launcher shortcuts for **StandBy** and **Bedside** (starts straight into night mode).
+- **Face shuffle**: rotate through your favourite faces every 5–60 minutes while untouched.
+- **Talking clock**: one tap speaks the time ("It's quarter past seven").
+- **Hourly chime** (silent at night) and **Bedtime blackout** that fades the display almost to black at night.
 
 ### 110+ watch faces in 14 families
 | Family | Highlights |
@@ -60,6 +64,7 @@ A redesigned settings app with a live preview, a setup checklist for permissions
 - Sweep is capped at 60 fps (30 fps for ambient art); night mode switches to a once-a-second tick; "Hidden" seconds stops frame loops entirely.
 - Gallery thumbnails render statically (no animation loops).
 - Timers run on monotonic deadlines, so they never drift.
+- Release builds are shrunk and optimised with R8 (code + resources).
 
 ---
 

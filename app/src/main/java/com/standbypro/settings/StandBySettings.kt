@@ -132,6 +132,11 @@ data class StandBySettings(
     val notificationPrivacy: NotificationPrivacy = NotificationPrivacy.ICON_ONLY,
     val showChargingAnimation: Boolean = true,
     val hapticsEnabled: Boolean = true,
+    /** Rotate through favourite faces every N minutes (0 = off). */
+    val faceShuffleMinutes: Int = 0,
+    val hourlyChime: Boolean = false,
+    /** At night, fade the display almost to black so only a faint clock remains. */
+    val nightBlackout: Boolean = false,
 
     // Developer / demo simulation overrides
     val demoModeEnabled: Boolean = false,

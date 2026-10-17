@@ -99,8 +99,17 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
 
     private val minuteOfDay = currentTime.map { it.hour * 60 + it.minute }.distinctUntilChanged()
 
-    val isNightMode: StateFlow<Boolean> = combine(settings, sensorNight, minuteOfDay) { s, dark, minute ->
+    private val _bedsideSession = kotlinx.coroutines.flow.MutableStateFlow(false)
+    /** True while a "Bedside" session (launcher shortcut) forces the night rendition. */
+    val bedsideSession: StateFlow<Boolean> = _bedsideSession
+
+    fun setBedsideSession(active: Boolean) {
+        _bedsideSession.value = active
+    }
+
+    val isNightMode: StateFlow<Boolean> = combine(settings, sensorNight, minuteOfDay, _bedsideSession) { s, dark, minute, bedside ->
         when {
+            bedside -> true
             s.demoModeEnabled -> s.simulateNight
             !s.nightModeEnabled -> false
             s.nightTrigger == NightTrigger.ALWAYS -> true
@@ -388,6 +397,25 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     fun setAutoDimTimeout(seconds: Int) = launch { settingsRepository.setAutoDimTimeout(seconds) }
     fun setShowChargingAnimation(v: Boolean) = launch { settingsRepository.setShowChargingAnimation(v) }
     fun setHaptics(v: Boolean) = launch { settingsRepository.setHaptics(v) }
+    fun setFaceShuffle(minutes: Int) = launch { settingsRepository.setFaceShuffle(minutes) }
+    fun setHourlyChime(v: Boolean) = launch { settingsRepository.setHourlyChime(v) }
+    fun setNightBlackout(v: Boolean) = launch { settingsRepository.setNightBlackout(v) }
+
+    /** Soft single chime for the top of the hour. */
+    fun hourlyChime() {
+        try {
+            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION) ?: return
+            RingtoneManager.getRingtone(app, uri)?.apply {
+                audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+                play()
+            }
+        } catch (e: Exception) {
+            // Best effort.
+        }
+    }
 
     // ---------------- Behaviour ----------------
 

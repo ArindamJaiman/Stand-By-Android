@@ -64,7 +64,8 @@ class MainActivity : ComponentActivity() {
             e.printStackTrace()
         }
 
-        val launchStandBy = intent.getBooleanExtra(EXTRA_START_STANDBY, false)
+        val launchStandBy = intent.getBooleanExtra(EXTRA_START_STANDBY, false) || intent.isStandByAction()
+        if (intent.action == ACTION_START_BEDSIDE) viewModel.setBedsideSession(true)
         isAutoStarted = intent.getBooleanExtra(EXTRA_AUTO_STARTED, false)
         isStandByActive = launchStandBy
         if (launchStandBy) configureImmersiveStandBy(true)
@@ -132,7 +133,10 @@ class MainActivity : ComponentActivity() {
         viewModel.onResume()
     }
 
+    private fun Intent.isStandByAction(): Boolean = action == ACTION_START_STANDBY || action == ACTION_START_BEDSIDE
+
     private fun leaveStandBy() {
+        viewModel.setBedsideSession(false)
         configureImmersiveStandBy(false)
         if (isAutoStarted) finish() else isStandByActive = false
     }
@@ -173,7 +177,8 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         allowOverLockScreen(true)
-        if (intent.getBooleanExtra(EXTRA_START_STANDBY, false)) {
+        if (intent.getBooleanExtra(EXTRA_START_STANDBY, false) || intent.isStandByAction()) {
+            viewModel.setBedsideSession(intent.action == ACTION_START_BEDSIDE)
             isAutoStarted = intent.getBooleanExtra(EXTRA_AUTO_STARTED, false)
             configureImmersiveStandBy(true)
             isStandByActive = true
@@ -207,5 +212,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_START_STANDBY = "EXTRA_START_STANDBY"
         const val EXTRA_AUTO_STARTED = "EXTRA_AUTO_STARTED"
+        const val ACTION_START_STANDBY = "com.standbypro.action.START_STANDBY"
+        const val ACTION_START_BEDSIDE = "com.standbypro.action.START_BEDSIDE"
     }
 }

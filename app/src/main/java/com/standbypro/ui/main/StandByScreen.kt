@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
@@ -95,8 +96,12 @@ fun StandByScreen(
     val settings by viewModel.settings.collectAsState()
     val ctx by viewModel.faceContext.collectAsState()
     val ambient by viewModel.ambientDisplayState.collectAsState()
-    val haptics = LocalHapticFeedback.current
+    val systemHaptics = LocalHapticFeedback.current
+    val haptics = remember(settings.hapticsEnabled, systemHaptics) {
+        if (settings.hapticsEnabled) systemHaptics else NoHaptics
+    }
     val scope = rememberCoroutineScope()
+    val speaker = rememberTalkingClock()
 
     var controlsVisible by remember { mutableStateOf(true) }
     var pickerVisible by remember { mutableStateOf(false) }
@@ -117,6 +122,22 @@ fun StandByScreen(
         }
     }
 
+    // Face shuffle: rotate through favourites while the display is untouched.
+    LaunchedEffect(settings.faceShuffleMinutes, lastTouch) {
+        val minutes = settings.faceShuffleMinutes
+        if (minutes <= 0) return@LaunchedEffect
+        while (true) {
+            delay(minutes * 60_000L)
+            viewModel.cycleWatchFace()
+        }
+    }
+    // Hourly chime (never during night mode).
+    LaunchedEffect(ctx.time.hour) {
+        if (settings.hourlyChime && !ambient.isNight && ctx.time.minute == 0 && ctx.time.second < 5) {
+            viewModel.hourlyChime()
+        }
+    }
+
     val pages = StandByPage.entries
     val pagerState = rememberPagerState(initialPage = settings.startPage.ordinal) { pages.size }
     LaunchedEffect(pagerState) {
@@ -129,7 +150,12 @@ fun StandByScreen(
     }
 
     val nightStrength by animateFloatAsState(if (ambient.isNight) 1f else 0f, tween(1500), label = "night")
-    val dimAlpha by animateFloatAsState(if (ambient.isDimmed && !controlsVisible) 0.55f else 0f, tween(1200), label = "dim")
+    val dimTarget = when {
+        ambient.isNight && settings.nightBlackout && !controlsVisible -> 0.82f
+        ambient.isDimmed && !controlsVisible -> 0.55f
+        else -> 0f
+    }
+    val dimAlpha by animateFloatAsState(dimTarget, tween(1500), label = "dim")
     val offset = IntOffset(ambient.burnInOffset.x.roundToInt(), ambient.burnInOffset.y.roundToInt())
 
     fun touched() {
@@ -218,7 +244,8 @@ fun StandByScreen(
                     val idx = all.indexOfFirst { it.id == settings.colorThemeId }
                     viewModel.setColorTheme(all[(idx + 1) % all.size].id)
                 },
-                onFaces = { touched(); pickerVisible = true; controlsVisible = false }
+                onFaces = { touched(); pickerVisible = true; controlsVisible = false },
+                onSpeak = { touched(); speaker.speak(ctx.time.hour, ctx.time.minute) }
             )
         }
 
@@ -314,7 +341,8 @@ private fun ControlsBar(
     onBrightness: (Float) -> Unit,
     onToggleNight: () -> Unit,
     onCycleTheme: () -> Unit,
-    onFaces: () -> Unit
+    onFaces: () -> Unit,
+    onSpeak: () -> Unit
 ) {
     var local by remember(brightness) { mutableFloatStateOf(brightness) }
     Row(
@@ -342,6 +370,7 @@ private fun ControlsBar(
             Icon(Icons.Default.BrightnessHigh, null, tint = Ink.TextSecondary, modifier = Modifier.size(16.dp))
         }
         RoundChip(if (isNight) Icons.Default.LightMode else Icons.Default.DarkMode, "Night mode", onToggleNight, active = isNight, accent = Ink.Red)
+        RoundChip(Icons.Default.RecordVoiceOver, "Speak the time", onSpeak)
         RoundChip(Icons.Default.Palette, "Accent colour", onCycleTheme, accent = accent)
         RoundChip(Icons.Default.Star, "Favourite faces", onFaces)
         RoundChip(Icons.Default.Tune, "Open Studio", onStudio)
@@ -385,4 +414,9 @@ private fun FavoritesPicker(ctx: FaceContext, activeId: String, favorites: List<
             }
         }
     }
+}
+
+/** Haptics sink used when the user turns haptic feedback off. */
+private object NoHaptics : androidx.compose.ui.hapticfeedback.HapticFeedback {
+    override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) = Unit
 }

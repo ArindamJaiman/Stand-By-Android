@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="start_standby"
+        android:enabled="true"
+        android:icon="@drawable/ic_tile_standby"
+        android:shortcutShortLabel="@string/shortcut_start"
+        android:shortcutLongLabel="@string/shortcut_start_long">
+        <intent
+            android:action="com.standbypro.action.START_STANDBY"
+            android:targetPackage="com.standbypro"
+            android:targetClass="com.standbypro.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="night_standby"
+        android:enabled="true"
+        android:icon="@drawable/ic_tile_standby"
+        android:shortcutShortLabel="@string/shortcut_bedside"
+        android:shortcutLongLabel="@string/shortcut_bedside_long">
+        <intent
+            android:action="com.standbypro.action.START_BEDSIDE"
+            android:targetPackage="com.standbypro"
+            android:targetClass="com.standbypro.MainActivity" />
+    </shortcut>
+</shortcuts>

@@ -321,6 +321,11 @@ private fun minutesLabel(m: Int): String = "%02d:%02d".format(m / 60, m % 60)
 
 fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySettings) {
     val accent = settings.activeColorTheme.color
+    item(key = "d_shuffle") {
+        StudioSection("Face shuffle", footer = "Rotates through your favourite faces while the display is untouched.") {
+            ChipRow(listOf(0, 5, 15, 30, 60), { it == settings.faceShuffleMinutes }, { if (it == 0) "Off" else if (it < 60) "$it min" else "1 hour" }, { viewModel.setFaceShuffle(it) }, accent)
+        }
+    }
     item(key = "d_accent") {
         StudioSection("Accent colour") {
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -374,6 +379,8 @@ fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySetti
                 }
                 SubLabel("Tint")
                 ChipRow(NightStyle.entries, { it == settings.nightStyle }, { it.label }, { viewModel.setNightModeStyle(it.id) }, Ink.Red)
+                RowDivider()
+                ToggleRow("Bedtime blackout", "Fade almost to black at night; tap to peek", settings.nightBlackout, { viewModel.setNightBlackout(it) })
             }
         }
     }
@@ -387,6 +394,8 @@ fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySetti
             }
             RowDivider()
             ToggleRow("Charging animation", "Glowing ring when you plug in", settings.showChargingAnimation, { viewModel.setShowChargingAnimation(it) })
+            RowDivider()
+            ToggleRow("Hourly chime", "A soft chime on the hour (silent at night)", settings.hourlyChime, { viewModel.setHourlyChime(it) })
             RowDivider()
             ToggleRow("Haptics", "Subtle feedback when swiping pages", settings.hapticsEnabled, { viewModel.setHaptics(it) })
         }
