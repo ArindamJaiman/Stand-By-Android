@@ -32,6 +32,8 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DoNotDisturbOn
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Monitor
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
@@ -41,6 +43,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -323,8 +326,23 @@ private fun LayoutDiagram(layout: DashboardLayoutType, color: Color, modifier: M
 
 private fun minutesLabel(m: Int): String = "%02d:%02d".format(m / 60, m % 60)
 
-fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySettings) {
+fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySettings, ctx: FaceContext) {
     val accent = settings.activeColorTheme.color
+    item(key = "d_themes") {
+        StudioSection("Themes", footer = "One tap sets the accent, face, typeface, backdrop and night tint together. Fine-tune anything below.") {
+            ThemeGallery(settings, ctx) { viewModel.applyTheme(it) }
+        }
+    }
+    item(key = "d_font") {
+        StudioSection("Clock typeface", footer = "Used by every face that doesn't have a signature typeface of its own.") {
+            ClockFontPicker(settings.clockFont, ctx.timeText, accent) { viewModel.setClockFont(it) }
+        }
+    }
+    item(key = "d_backdrop") {
+        StudioSection("Backdrop", footer = "Drawn behind the dashboard and smart stacks. Moves very slowly and pauses at night.") {
+            BackdropPicker(settings.backdrop, accent) { viewModel.setBackdrop(it) }
+        }
+    }
     item(key = "d_shuffle") {
         StudioSection("Face shuffle", footer = "Rotates through your favourite faces while the display is untouched.") {
             ChipRow(listOf(0, 5, 15, 30, 60), { it == settings.faceShuffleMinutes }, { if (it == 0) "Off" else if (it < 60) "$it min" else "1 hour" }, { viewModel.setFaceShuffle(it) }, accent)
@@ -382,7 +400,13 @@ fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySetti
                     }
                 }
                 SubLabel("Tint")
+                if (settings.nightTrigger == NightTrigger.SUN) {
+                    Text("Uses your weather location to work out sunset and sunrise each day.", color = Ink.TextTertiary, fontSize = 12.sp, modifier = Modifier.padding(start = 16.dp, top = 4.dp))
+                }
                 ChipRow(NightStyle.entries, { it == settings.nightStyle }, { it.label }, { viewModel.setNightModeStyle(it.id) }, Ink.Red)
+                SubLabel("Night face")
+                val nightChoices = (listOf("", "digital_minimal", "ambient_minimal_gradient", "digital_oled", "analog_meridian", "ambient_breathe") + viewModel.favoriteFaces(settings)).distinct()
+                ChipRow(nightChoices, { it == settings.nightFaceId }, { if (it.isEmpty()) "Same as day" else WatchFaceRegistry.getById(it).name }, { viewModel.setNightFace(it) }, Ink.Red)
                 RowDivider()
                 ToggleRow("Bedtime blackout", "Fade almost to black at night; tap to peek", settings.nightBlackout, { viewModel.setNightBlackout(it) })
             }
@@ -638,6 +662,11 @@ fun LazyListScope.behaviourTab(viewModel: StandByViewModel, settings: StandBySet
             ToggleRow("Require landscape", "Only when the phone is on its side", settings.requireLandscape, { viewModel.setRequireLandscape(it) })
             RowDivider()
             ToggleRow("Require locked", "Only when the screen is off or locked", settings.requireScreenLocked, { viewModel.setRequireScreenLocked(it) })
+            RowDivider()
+            val context = LocalContext.current
+            NavRow("Use as screen saver", "Pick StandBy Pro in Display → Screen saver", icon = Icons.Default.Monitor, iconTint = Ink.Teal) {
+                runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_DREAM_SETTINGS)) }
+            }
         }
     }
     item(key = "b_bedtime") {
@@ -676,6 +705,24 @@ fun LazyListScope.behaviourTab(viewModel: StandByViewModel, settings: StandBySet
                 Icon(Icons.Default.BatteryChargingFull, null, tint = Ink.TextTertiary, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Notifies you to unplug when charging reaches the limit — keeping lithium cells below 100% slows wear.", color = Ink.TextTertiary, fontSize = 12.sp)
+            }
+        }
+    }
+    item(key = "b_backup") {
+        val status by viewModel.backupStatus.collectAsState()
+        val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+            if (uri != null) viewModel.exportSettings(uri)
+        }
+        val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) viewModel.importSettings(uri)
+        }
+        StudioSection("Backup", footer = status ?: "Saves faces, themes, widgets, cities and every preference to a file you can restore on any phone. Photos stay on this device.") {
+            NavRow("Export settings", "Save a .json backup", icon = Icons.Default.Upload, iconTint = Ink.Blue) {
+                exportLauncher.launch("standby-pro-settings.json")
+            }
+            RowDivider()
+            NavRow("Import settings", "Restore from a backup file", icon = Icons.Default.Download, iconTint = Ink.Green) {
+                importLauncher.launch(arrayOf("application/json", "text/plain", "application/octet-stream"))
             }
         }
     }

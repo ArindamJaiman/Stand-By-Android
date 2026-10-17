@@ -13,6 +13,7 @@ import android.os.VibratorManager
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.standbypro.astro.Astronomy
 import com.standbypro.audio.SleepSound
 import com.standbypro.audio.SoundMachine
 import com.standbypro.audio.SoundState
@@ -40,6 +41,7 @@ import com.standbypro.domain.FaceContext
 import com.standbypro.domain.LiveActivityState
 import com.standbypro.domain.NotificationDisplayState
 import com.standbypro.domain.NotificationPrivacy
+import com.standbypro.domain.RainSoon
 import com.standbypro.domain.UpNext
 import com.standbypro.domain.WatchFaceRegistry
 import com.standbypro.domain.WeatherData
@@ -58,7 +60,10 @@ import com.standbypro.settings.StandByPage
 import com.standbypro.settings.StandBySettings
 import com.standbypro.settings.dataStore
 import com.standbypro.ui.compositor.AmbientDisplayState
+import com.standbypro.ui.design.Backdrop
+import com.standbypro.ui.design.ClockFont
 import com.standbypro.ui.design.SecondsMotion
+import com.standbypro.ui.design.ThemePreset
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
@@ -121,6 +126,7 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
             !s.nightModeEnabled -> false
             s.nightTrigger == NightTrigger.ALWAYS -> true
             s.nightTrigger == NightTrigger.SCHEDULE -> inWindow(minute, s.nightStartMinutes, s.nightEndMinutes)
+            s.nightTrigger == NightTrigger.SUN -> resolvePlace(s).let { isSunDown(System.currentTimeMillis(), it.latitude, it.longitude) }
             else -> dark
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -206,15 +212,17 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    /** Timers first, then a meeting that's about to start, then media. */
-    private val liveActivity: StateFlow<LiveActivityState?> = combine(productivityActivity, eventActivity, NowPlayingRepository.state) { work, event, media ->
+    private val rainActivity = weather.map { w -> RainSoon.outlook(w)?.let { LiveActivityState.WeatherActivity(subtitle = it) } }.distinctUntilChanged()
+
+    /** Timers first, then a meeting that's about to start, then media, then a rain heads-up. */
+    private val liveActivity: StateFlow<LiveActivityState?> = combine(productivityActivity, eventActivity, NowPlayingRepository.state, rainActivity) { work, event, media, rain ->
         work ?: event ?: if (media.hasSession && media.isPlaying) {
             LiveActivityState.MusicActivity(
                 title = media.title.ifBlank { "Now Playing" },
                 subtitle = listOf(media.artist, media.appName).filter { it.isNotBlank() }.joinToString(" • "),
                 progress = null
             )
-        } else null
+        } else rain
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /** Single source of truth for every face and widget. */
@@ -266,14 +274,15 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
             isNight = chrome.night,
             nightStyle = s.nightStyle,
             brightness = s.brightnessLevel,
-            watchFaceId = s.activeWatchFaceId,
+            watchFaceId = if (chrome.night && WatchFaceRegistry.contains(s.nightFaceId)) s.nightFaceId else s.activeWatchFaceId,
             layout = s.layoutType,
             widgets = s.assignedWidgets,
             liveActivity = live,
             notificationState = notif,
             burnInOffset = if (s.burnInProtectionEnabled) Offset(chrome.burnIn.x, chrome.burnIn.y) else Offset.Zero,
             activeThemeColor = s.activeColorTheme.color,
-            isDimmed = chrome.dimmed
+            isDimmed = chrome.dimmed,
+            backdrop = s.backdrop
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AmbientDisplayState())
 
@@ -427,6 +436,10 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     // ---------------- Display ----------------
 
     fun setColorTheme(id: String) = launch { settingsRepository.setColorTheme(id) }
+    fun setClockFont(v: ClockFont) = launch { settingsRepository.setClockFont(v) }
+    fun setBackdrop(v: Backdrop) = launch { settingsRepository.setBackdrop(v) }
+    fun setNightFace(id: String) = launch { settingsRepository.setNightFace(id) }
+    fun applyTheme(preset: ThemePreset) = launch { settingsRepository.applyTheme(preset) }
     fun setBrightnessLevel(v: Float) = launch { settingsRepository.setBrightnessLevel(v) }
     fun setUse24Hour(v: Boolean) = launch { settingsRepository.setUse24Hour(v) }
     fun setShowSeconds(v: Boolean) = launch { settingsRepository.setShowSeconds(v) }
@@ -484,6 +497,36 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     override fun onCleared() {
         endStandBySession()
         super.onCleared()
+    }
+
+    // ---------------- Backup ----------------
+
+    private val _backupStatus = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    /** Last export/import result, shown under the Backup section. */
+    val backupStatus: StateFlow<String?> = _backupStatus
+
+    fun exportSettings(uri: Uri) = launch {
+        _backupStatus.value = try {
+            val json = settingsRepository.exportJson()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                app.contentResolver.openOutputStream(uri, "wt")?.use { it.write(json.toByteArray()) } ?: error("Couldn't open the file")
+            }
+            "Settings saved"
+        } catch (e: Exception) {
+            "Export failed: ${e.message}"
+        }
+    }
+
+    fun importSettings(uri: Uri) = launch {
+        _backupStatus.value = try {
+            val json = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                app.contentResolver.openInputStream(uri)?.use { it.readBytes().decodeToString() } ?: error("Couldn't open the file")
+            }
+            settingsRepository.importJson(json)
+            "Settings restored"
+        } catch (e: Exception) {
+            "Import failed: ${e.message}"
+        }
     }
 
     // ---------------- Behaviour ----------------
@@ -545,6 +588,10 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     }
 
     companion object {
+        /** True between sunset and sunrise (sun's upper limb below the horizon). */
+        fun isSunDown(nowMillis: Long, latitude: Double, longitude: Double): Boolean =
+            Astronomy.sunElevation(nowMillis, latitude, longitude) < -0.833
+
         /**
          * Sunrise wake light: ramps 0→1 over the [windowMinutes] before the alarm, then holds full
          * daylight for 15 minutes after it rings.

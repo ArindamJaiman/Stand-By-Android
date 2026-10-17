@@ -18,7 +18,8 @@ enum class WatchFaceCategory(val displayName: String, val iconName: String) {
     PHOTO("Photo", "PhotoLibrary"),
     CHARGING("Charging", "BatteryChargingFull"),
     WORLD_CLOCK("World Time", "Language"),
-    CALENDAR("Calendar", "CalendarMonth")
+    CALENDAR("Calendar", "CalendarMonth"),
+    MUSIC("Music", "MusicNote")
 }
 
 /**

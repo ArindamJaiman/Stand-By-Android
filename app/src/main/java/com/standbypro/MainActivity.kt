@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.standbypro.services.StandByService
 import com.standbypro.theme.StandByProTheme
 import com.standbypro.ui.StandByViewModel
+import com.standbypro.ui.design.DynamicAccent
+import com.standbypro.ui.design.FaceFonts
 import com.standbypro.ui.main.StandByScreen
 import com.standbypro.ui.settings.SettingsScreen
 
@@ -56,6 +59,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         allowOverLockScreen(true)
+        DynamicAccent.refresh(this)
 
         try {
             val serviceIntent = Intent(this, StandByService::class.java)
@@ -87,6 +91,7 @@ class MainActivity : ComponentActivity() {
             val settings by viewModel.settings.collectAsState()
             val ambient by viewModel.ambientDisplayState.collectAsState()
             val brightnessOverride by viewModel.brightnessOverride.collectAsState()
+            SideEffect { FaceFonts.clock = settings.clockFont.family() }
 
             LaunchedEffect(isStandByActive, settings.brightnessLevel, ambient.isNight, brightnessOverride) {
                 val lp = window.attributes
@@ -133,6 +138,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        DynamicAccent.refresh(this)
         viewModel.onResume()
     }
 

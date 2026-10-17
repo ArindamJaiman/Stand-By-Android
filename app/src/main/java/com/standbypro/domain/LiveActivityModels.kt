@@ -44,6 +44,17 @@ sealed interface LiveActivityState {
         val colorArgb: Int? = null
     ) : LiveActivityState
 
+    /** Rain expected soon at the user's location. */
+    data class WeatherActivity(
+        override val id: String = "weather_rain",
+        override val title: String = "Rain likely",
+        override val subtitle: String,
+        override val progress: Float? = null,
+        override val timestamp: String = "Soon",
+        override val status: String = "Forecast",
+        override val iconName: String = "Umbrella"
+    ) : LiveActivityState
+
     data class SportsActivity(
         override val id: String = "sports_active",
         override val title: String = "Champions League",

@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
@@ -19,10 +20,14 @@ import com.standbypro.domain.NotificationPrivacy
 import com.standbypro.domain.WatchFaceType
 import com.standbypro.domain.WidgetSize
 import com.standbypro.domain.WidgetSlot
+import com.standbypro.ui.design.Backdrop
+import com.standbypro.ui.design.ClockFont
 import com.standbypro.ui.design.SecondsMotion
+import com.standbypro.ui.design.ThemePreset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
@@ -57,6 +62,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val SECONDS_MOTION = stringPreferencesKey("seconds_motion")
         val CLOCK_STYLE = stringPreferencesKey("clock_style")
         val COLOR_THEME_ID = stringPreferencesKey("color_theme_id")
+        val CLOCK_FONT = stringPreferencesKey("clock_font")
+        val BACKDROP = stringPreferencesKey("backdrop")
+        val NIGHT_FACE_ID = stringPreferencesKey("night_face_id")
         val WATCH_FACE_TYPE = stringPreferencesKey("watch_face_type")
         val BOTTOM_COMPLICATION = stringPreferencesKey("bottom_complication")
         val GITHUB_USERNAME = stringPreferencesKey("github_username")
@@ -126,6 +134,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
             secondsMotion = enumOr(p[Keys.SECONDS_MOTION], d.secondsMotion),
             clockStyle = enumOr(p[Keys.CLOCK_STYLE], d.clockStyle),
             colorThemeId = p[Keys.COLOR_THEME_ID] ?: d.colorThemeId,
+            clockFont = enumOr(p[Keys.CLOCK_FONT], d.clockFont),
+            backdrop = enumOr(p[Keys.BACKDROP], d.backdrop),
+            nightFaceId = p[Keys.NIGHT_FACE_ID] ?: d.nightFaceId,
             watchFaceType = enumOr(p[Keys.WATCH_FACE_TYPE], d.watchFaceType),
             bottomComplication = enumOr(p[Keys.BOTTOM_COMPLICATION], d.bottomComplication),
             githubUsername = p[Keys.GITHUB_USERNAME] ?: d.githubUsername,
@@ -192,6 +203,19 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setSecondsMotion(v: SecondsMotion) = edit { it[Keys.SECONDS_MOTION] = v.name }
     suspend fun setClockStyle(v: ClockStyle) = edit { it[Keys.CLOCK_STYLE] = v.name }
     suspend fun setColorTheme(id: String) = edit { it[Keys.COLOR_THEME_ID] = id }
+    suspend fun setClockFont(v: ClockFont) = edit { it[Keys.CLOCK_FONT] = v.name }
+    suspend fun setBackdrop(v: Backdrop) = edit { it[Keys.BACKDROP] = v.name }
+    suspend fun setNightFace(id: String) = edit { it[Keys.NIGHT_FACE_ID] = id }
+
+    /** Applies a curated look in one transaction and makes sure its face is a favourite. */
+    suspend fun applyTheme(preset: ThemePreset) = edit { p ->
+        p[Keys.COLOR_THEME_ID] = preset.accentId
+        p[Keys.CLOCK_FONT] = preset.clockFont.name
+        p[Keys.BACKDROP] = preset.backdrop.name
+        p[Keys.NIGHT_MODE_STYLE] = preset.nightStyleId
+        p[Keys.ACTIVE_WATCH_FACE_ID] = preset.faceId
+        p[Keys.FAVORITE_FACES] = (p[Keys.FAVORITE_FACES] ?: defaults.favoriteFaceIds) + preset.faceId
+    }
     suspend fun setWatchFaceType(v: WatchFaceType) = edit { it[Keys.WATCH_FACE_TYPE] = v.name }
     suspend fun setBottomComplication(v: BottomComplicationType) = edit { it[Keys.BOTTOM_COMPLICATION] = v.name }
     suspend fun setGithubUsername(v: String) = edit { it[Keys.GITHUB_USERNAME] = v.trim().removePrefix("@") }
@@ -261,4 +285,30 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setDemoModeEnabled(v: Boolean) = edit { it[Keys.DEMO_MODE_ENABLED] = v }
     suspend fun setSimulateCharging(v: Boolean) = edit { it[Keys.SIMULATE_CHARGING] = v }
     suspend fun setSimulateNight(v: Boolean) = edit { it[Keys.SIMULATE_NIGHT] = v }
+
+    // ---------------- Backup ----------------
+
+    suspend fun exportJson(): String =
+        SettingsBackup.encode(dataStore.data.first().asMap().mapKeys { it.key.name })
+
+    /** Replaces every setting with the backup's, keeping this install's photo grants. */
+    suspend fun importJson(json: String) {
+        val values = SettingsBackup.decode(json)
+        edit { p ->
+            val photos = p[Keys.PHOTO_URIS]
+            p.clear()
+            values.forEach { (name, value) ->
+                when (value) {
+                    is Boolean -> p[booleanPreferencesKey(name)] = value
+                    is Int -> p[intPreferencesKey(name)] = value
+                    is Long -> p[longPreferencesKey(name)] = value
+                    is Float -> p[floatPreferencesKey(name)] = value
+                    is Double -> p[doublePreferencesKey(name)] = value
+                    is String -> p[stringPreferencesKey(name)] = value
+                    is Set<*> -> p[stringSetPreferencesKey(name)] = value.map { it.toString() }.toSet()
+                }
+            }
+            if (photos != null) p[Keys.PHOTO_URIS] = photos
+        }
+    }
 }

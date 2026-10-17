@@ -58,6 +58,8 @@ object WatchFaceRegistry {
         face("analog_typograph", "Typograph", WatchFaceCategory.ANALOG, "Huge 12-3-6-9 numerals with whisper-thin hands", true) { c, m -> TypographFace(c, m) },
         face("analog_contour", "Contour", WatchFaceCategory.ANALOG, "Numerals swell as the hour hand approaches them", true) { c, m -> ContourFace(c, m) },
         face("analog_numerals_duo", "Numerals", WatchFaceCategory.ANALOG, "A giant hour numeral with a single sweeping minute hand", true) { c, m -> NumeralsDuoFace(c, m) },
+        face("analog_carbon", "Carbon", WatchFaceCategory.ANALOG, "Sport chronometer on woven carbon with a battery register", true, live = true) { c, m -> CarbonFace(c, m) },
+        face("analog_marble", "Marble", WatchFaceCategory.ANALOG, "Carrara marble dial in a polished gold case", true) { c, m -> MarbleFace(c, m) },
         face("analog_minimal_dot", "Minimal Dot", WatchFaceCategory.ANALOG, "Nothing but dots, two hands and an orbiting seconds pearl", true) { c, m -> MinimalDotFace(c, m) },
         face("analog_bauhaus_color", "Memphis", WatchFaceCategory.ANALOG, "Playful primary shapes mark the quarters", true) { c, m -> BauhausColorFace(c, m) },
         face("analog_compass", "Field Compass", WatchFaceCategory.ANALOG, "Cardinal directions and a degree ring for the outdoors") { c, m -> CompassFace(c, m) },
@@ -89,6 +91,9 @@ object WatchFaceRegistry {
         face("digital_matrix", "Terminal", WatchFaceCategory.DIGITAL, "Phosphor console with live battery and weather readouts") { c, m -> DigitalMatrixFace(c, m) },
         face("digital_binary", "Binary", WatchFaceCategory.DIGITAL, "BCD binary columns for hours, minutes and seconds") { c, m -> DigitalBinaryFace(c, m) },
         face("digital_seconds_ring", "Seconds Ring", WatchFaceCategory.DIGITAL, "Digital time inside a ring of 60 lighting pearls", true) { c, m -> DigitalSecondsRingFace(c, m) },
+        face("digital_code_rain", "Code Rain", WatchFaceCategory.DIGITAL, "Falling glyph columns around a glowing terminal clock", true) { c, m -> CodeRainFace(c, m) },
+        face("digital_big_date", "Big Date", WatchFaceCategory.CALENDAR, "Editorial calendar: a giant date, the time and what's next", true, live = true) { c, m -> BigDateFace(c, m) },
+        face("music_vinyl", "Vinyl", WatchFaceCategory.MUSIC, "A turntable that spins your album art while music plays", true, live = true) { c, m -> VinylFace(c, m) },
 
         // ---------------- GMT & WORLD ----------------
         face("gmt_explorer", "GMT Master", WatchFaceCategory.GMT, "Two-tone 24h bezel and an arrow hand for your second time zone") { c, m -> GmtExplorerFace(c, m) },
@@ -124,6 +129,7 @@ object WatchFaceRegistry {
         face("weather_forecast", "Forecast", WatchFaceCategory.WEATHER, "Six-day forecast with temperature range bars", live = true) { c, m -> WeatherForecastFace(c, m) },
         face("weather_analog", "Thermo Dial", WatchFaceCategory.WEATHER, "Analog dial wrapped in a live thermometer arc", live = true) { c, m -> WeatherAnalogFace(c, m) },
         face("weather_sun_arc", "Sunrise & Sunset", WatchFaceCategory.WEATHER, "Today's sun path with real sunrise, sunset and daylight", true) { c, m -> WeatherSunArcFace(c, m) },
+        face("weather_rain_glass", "Rain on Glass", WatchFaceCategory.WEATHER, "City lights behind a wet window; rivulets run when it rains", true, live = true) { c, m -> RainGlassFace(c, m) },
 
         // ---------------- ASTRONOMY ----------------
         face("astro_moon", "Moon", WatchFaceCategory.ASTRONOMY, "Photographic moon in its real phase with upcoming full and new moons", true) { c, m -> MoonFace(c, m) },
@@ -149,6 +155,8 @@ object WatchFaceRegistry {
         face("ambient_minimal_gradient", "Void", WatchFaceCategory.AMBIENT, "A breathing glow on pure black — the most restful face") { c, m -> MinimalGradientFace(c, m) },
         face("ambient_lava", "Lava Lamp", WatchFaceCategory.AMBIENT, "Warm wax blobs rising and falling", true) { c, m -> LavaLampFace(c, m) },
         face("ambient_breathe", "Breathe", WatchFaceCategory.AMBIENT, "Guided box breathing: a bloom that grows as you inhale", true) { c, m -> BreathingFace(c, m) },
+        face("ambient_silk", "Silk", WatchFaceCategory.AMBIENT, "Flowing ribbons of light in your accent colour", true) { c, m -> SilkFace(c, m) },
+        face("ambient_sakura", "Sakura", WatchFaceCategory.ARTISTIC, "A cherry branch under the moon with drifting petals", true) { c, m -> SakuraFace(c, m) },
         face("ambient_tide", "Tide", WatchFaceCategory.AMBIENT, "Water rises through the hour; the hour floats inside", true) { c, m -> TideFace(c, m) },
 
         // ---------------- ARTISTIC ----------------

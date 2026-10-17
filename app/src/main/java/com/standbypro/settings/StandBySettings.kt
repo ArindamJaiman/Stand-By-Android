@@ -7,6 +7,9 @@ import com.standbypro.domain.NotificationPrivacy
 import com.standbypro.domain.WatchFaceType
 import com.standbypro.domain.WidgetSize
 import com.standbypro.domain.WidgetSlot
+import com.standbypro.ui.design.Backdrop
+import com.standbypro.ui.design.ClockFont
+import com.standbypro.ui.design.DynamicAccent
 import com.standbypro.ui.design.SecondsMotion
 
 enum class ClockStyle {
@@ -17,7 +20,7 @@ enum class ClockStyle {
 enum class StandByColorTheme(
     val id: String,
     val displayName: String,
-    val color: Color
+    private val baseColor: Color
 ) {
     ORANGE("orange", "StandBy Orange", Color(0xFFFF9500)),
     RED("red", "Crimson", Color(0xFFFF3B30)),
@@ -31,8 +34,18 @@ enum class StandByColorTheme(
     BLUE("blue", "Sapphire", Color(0xFF0A84FF)),
     INDIGO("indigo", "Indigo", Color(0xFF5E5CE6)),
     PURPLE("purple", "Royal Purple", Color(0xFFBF5AF2)),
+    LAVENDER("lavender", "Lavender", Color(0xFFB4A7FF)),
+    RUBY("ruby", "Ruby", Color(0xFFE0115F)),
+    COPPER("copper", "Copper", Color(0xFFD9895B)),
+    LIME("lime", "Electric Lime", Color(0xFFB8F04A)),
+    LAGOON("lagoon", "Lagoon", Color(0xFF2EC4B6)),
     WHITE("white", "Porcelain", Color(0xFFF5F5F7)),
-    MONOCHROME("monochrome", "OLED Slate", Color(0xFF8E8E93));
+    MONOCHROME("monochrome", "OLED Slate", Color(0xFF8E8E93)),
+    WALLPAPER("wallpaper", "Wallpaper (Material You)", Color(0xFF8AB4F8)) {
+        override val color: Color get() = DynamicAccent.color
+    };
+
+    open val color: Color get() = baseColor
 
     companion object {
         fun fromId(id: String): StandByColorTheme {
@@ -54,6 +67,7 @@ enum class StandByProfile(val displayName: String) {
 enum class NightTrigger(val label: String, val description: String) {
     LIGHT_SENSOR("Dark room", "Ambient light sensor below 5 lux"),
     SCHEDULE("Schedule", "Between the bedtime hours you choose"),
+    SUN("Sunset", "From sunset to sunrise where you are"),
     ALWAYS("Always", "Night rendition all the time")
 }
 
@@ -98,12 +112,16 @@ data class StandBySettings(
     val secondsMotion: SecondsMotion = SecondsMotion.SWEEP,
     val clockStyle: ClockStyle = ClockStyle.ANALOG,
     val colorThemeId: String = StandByColorTheme.ORANGE.id,
+    val clockFont: ClockFont = ClockFont.MODERN,
+    val backdrop: Backdrop = Backdrop.BLACK,
     val watchFaceType: WatchFaceType = WatchFaceType.GMT_CALENDAR,
     val bottomComplication: BottomComplicationType = BottomComplicationType.BATTERY,
     val githubUsername: String = "ArindamJaiman",
 
     // Layout
     val activeWatchFaceId: String = "analog_standby",
+    /** Face shown automatically while night mode is on ("" = keep the active face). */
+    val nightFaceId: String = "",
     val layoutType: DashboardLayoutType = DashboardLayoutType.DUO,
     val assignedWidgets: List<WidgetSlot> = listOf(
         WidgetSlot("slot_1", "widget_calendar", WidgetSize.MEDIUM),

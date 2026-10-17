@@ -1,6 +1,9 @@
 package com.standbypro.ui.design
 
 import android.graphics.Typeface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -54,6 +57,13 @@ object FaceFonts {
     val Condensed: FontFamily = FontFamily(Typeface.create("sans-serif-condensed", Typeface.NORMAL))
     val CondensedBold: FontFamily = FontFamily(Typeface.create("sans-serif-condensed", Typeface.BOLD))
     val SerifItalic: FontFamily = FontFamily(Typeface.create(Typeface.SERIF, Typeface.ITALIC))
+
+    /**
+     * The user's clock typeface (Studio → Display). Snapshot state, so every face that uses the
+     * default [clockStyle] family re-renders when it changes; faces with a signature typeface
+     * pass their own family and keep it.
+     */
+    var clock: FontFamily by mutableStateOf(Sans)
 }
 
 /** Tabular figures keep clock digits from jittering as they change. */
@@ -61,7 +71,7 @@ const val TABULAR = "tnum"
 
 fun clockStyle(
     weight: FontWeight = FontWeight.Light,
-    family: FontFamily = FaceFonts.Sans,
+    family: FontFamily = FaceFonts.clock,
     letterSpacingEm: Float = -0.02f
 ): TextStyle = TextStyle(
     fontFamily = family,

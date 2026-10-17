@@ -79,6 +79,7 @@ import com.standbypro.settings.StandByColorTheme
 import com.standbypro.settings.StandByPage
 import com.standbypro.ui.StandByViewModel
 import com.standbypro.ui.compositor.AmbientCompositor
+import com.standbypro.ui.design.BackdropLayer
 import com.standbypro.ui.design.Ink
 import com.standbypro.ui.faces.PhotoClockFace
 import kotlinx.coroutines.delay
@@ -223,6 +224,7 @@ fun StandByScreen(
                     )
                 }
         ) {
+            BackdropLayer(ambient.backdrop, ambient.activeThemeColor, animate = !ambient.isNight, modifier = Modifier.fillMaxSize())
             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                 Box(
                     Modifier.fillMaxSize().offset { offset }.padding(horizontal = 22.dp, vertical = 14.dp)
@@ -231,7 +233,11 @@ fun StandByScreen(
                         StandByPage.DASHBOARD -> AmbientCompositor(ambient, ctx, Modifier.fillMaxSize())
                         StandByPage.STACKS -> SmartStacks(ctx, settings.leftStack, settings.rightStack, settings.smartRotate, Modifier.fillMaxSize())
                         StandByPage.PHOTOS -> PhotoClockFace(ctx, Modifier.fillMaxSize())
-                        StandByPage.CLOCK -> FaceCarousel(viewModel, ctx, settings.activeWatchFaceId, Modifier.fillMaxSize())
+                        StandByPage.CLOCK -> if (ambient.isNight && WatchFaceRegistry.contains(settings.nightFaceId)) {
+                            WatchFaceRegistry.Render(settings.nightFaceId, ctx, Modifier.fillMaxSize())
+                        } else {
+                            FaceCarousel(viewModel, ctx, settings.activeWatchFaceId, Modifier.fillMaxSize())
+                        }
                     }
                 }
             }

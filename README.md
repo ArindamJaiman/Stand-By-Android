@@ -1,7 +1,7 @@
 # 🌙 StandBy Pro for Android
 
 <p align="center">
-  <b>An iOS-style StandBy smart display for Android — 110+ watch faces, 26 live widgets, smart stacks, a true red night mode and a full bedside toolkit.</b><br>
+  <b>An iOS-style StandBy smart display for Android — 120+ watch faces, 26 live widgets, curated themes, smart stacks, a true red night mode and a full bedside toolkit.</b><br>
   Built with Jetpack Compose and Material 3. No ads, no accounts, no trackers.
 </p>
 
@@ -17,7 +17,7 @@
   - **Photos**: your own photos with Ken Burns drift and cross-fades.
   - **Dashboard**: face + widgets in Single, Dual, Triple or Quad layouts.
 - **Gestures**: tap for controls, double-tap for the next face, long-press for a live favourites picker.
-- **True night mode**: the entire display is re-rendered in red (or amber / dim white) through a colour matrix — triggered by the light sensor, a bedtime schedule or always on. Brightness is capped automatically.
+- **True night mode**: the entire display is re-rendered in red (or amber / dim white) through a colour matrix — triggered by the light sensor, a bedtime schedule, **sunset to sunrise** at your location, or always on. Brightness is capped automatically, and you can pick a separate **night face** that takes over while it's dark.
 - **Live Activity pill** for running timers, Pomodoro, stopwatch and now-playing media.
 - **Charging moment**: a glowing ring sweeps to your battery level when you plug in.
 - **Screen care**: slow burn-in drift, configurable auto-dim, per-frame-cheap rendering.
@@ -25,7 +25,15 @@
 - **Face shuffle**: rotate through your favourite faces every 5–60 minutes while untouched.
 - **Talking clock**: one tap speaks the time ("It's quarter past seven").
 - **Hourly chime** (silent at night) and **Bedtime blackout** that fades the display almost to black at night.
-- **Up Next pill**: a meeting starting within 15 minutes appears in the Live Activity pill with its calendar colour.
+- **Up Next pill**: a meeting starting within 15 minutes appears in the Live Activity pill with its calendar colour; a **Rain likely** heads-up appears when rain is forecast in the next two hours.
+- **Screen saver**: pick StandBy Pro in Android's Display → Screen saver and your dashboard appears whenever the phone is charging or docked — night mode and burn-in drift included.
+
+### Themes
+- **10 curated looks** — StandBy, Midnight Gold, Nordic Frost, Tokyo Neon, Forest Calm, Mono Pro, Rosé, Deep Space, Vinyl Lounge and Material You. One tap sets the accent, face, typeface, backdrop and night tint together.
+- **20 accent colours**, including Lavender, Ruby, Copper, Electric Lime, Lagoon and **Wallpaper** (Material You colours from your wallpaper on Android 12+).
+- **Clock typeface**: Modern, Classic, Elegant, Condensed or Mono — applied to every face without a signature typeface of its own.
+- **Backdrops** behind the dashboard: OLED black, Graphite, Accent glow, Aurora, Dusk and Starfield. They drift very slowly and pause at night.
+- **Backup & restore**: export every setting to a JSON file and restore it on any phone.
 
 ### Bedside toolkit
 - **Sleep sounds**: rain, ocean, fan, brown, pink and white noise — synthesised on the device, no audio files, with a volume slider.
@@ -38,19 +46,20 @@
 
 Find the sound machine, timer and night light behind the moon button on the StandBy display; the rest lives in Studio → Behaviour → Bedtime & battery.
 
-### 110+ watch faces in 14 families
+### 120+ watch faces in 15 families
 | Family | Highlights |
 | --- | --- |
-| **Analog (29)** | StandBy Analog, Luxury Gold, Chronograph (working 24h/30-min/12h registers + tachymeter), Pilot, Diver 300M, Skeleton (moving gears), Tourbillon, Railway, Regulator, Pocket Watch, California, Field, Meridian, Typograph, Contour, Numerals, Solar Dial (real sun elevation), Infograph (live complications), Moonphase (real phase), Sundial, Rings… |
-| **Digital (21)** | Minimal, Float, Bold Stack, Vertical, OLED, Split, Gradient, Neon, Outline, Frosted Glass, Swiss Poster, Typewriter, Spoken, Word Clock, Seven Segment, Retro LCD, Dot Matrix, Nixie Tubes, Terminal, Binary, Seconds Ring |
+| **Analog (31)** | StandBy Analog, **Carbon** (woven carbon chronometer with a battery register), **Marble** (Carrara dial in gold), Luxury Gold, Chronograph (working 24h/30-min/12h registers + tachymeter), Pilot, Diver 300M, Skeleton (moving gears), Tourbillon, Railway, Regulator, Pocket Watch, California, Field, Meridian, Typograph, Contour, Numerals, Solar Dial (real sun elevation), Infograph (live complications), Moonphase (real phase), Sundial, Rings… |
+| **Digital (22)** | **Code Rain**, Minimal, Float, Bold Stack, Vertical, OLED, Split, Gradient, Neon, Outline, Frosted Glass, Swiss Poster, Typewriter, Spoken, Word Clock, Seven Segment, Retro LCD, Dot Matrix, Nixie Tubes, Terminal, Binary, Seconds Ring |
 | **GMT & World (7)** | GMT Master (second time zone), GMT Calendar, World Time (rotating 24-city ring), Dual Time, World Clocks, Time Zones, Day & Night map with live terminator |
 | **Hybrid & Modular (8)** | Ana-Digi, Battery Gauge, Weather Dial, Day-Date, GMT Weather, Modular, Infograph Modular, Dashboard |
 | **Flip (6)** | Real animated split-flap cards: Classic, Midnight, Amber, Graphite, Paper, Seconds |
-| **Weather (6)** | Living Sky (animated real conditions), Weather Now, Hourly curve, Forecast bars, Thermo Dial, Sunrise & Sunset |
+| **Weather (7)** | **Rain on Glass** (rivulets run when it's really raining), Living Sky (animated real conditions), Weather Now, Hourly curve, Forecast bars, Thermo Dial, Sunrise & Sunset |
 | **Astronomy (3)** | Moon (real phase, next full/new), Orrery (planets where they are today), Night Sky |
 | **Productivity (7)** | Pomodoro, Timer, Stopwatch (working, with alarm chime), Deep Work, Progress, Countdown, Agenda |
-| **Ambient & Artistic (19)** | Breathe (guided box breathing), Aurora, Deep Cosmos, Moonlit Ocean, Firefly Forest, Alpine, Zen, Void, Lava Lamp, Tide, Bauhaus Shapes, Synthwave, Ensō, Orbits, Radar, Fibonacci clock, Pendulum, Hourglass, Spiral |
+| **Ambient & Artistic (21)** | **Silk**, **Sakura**, Breathe (guided box breathing), Aurora, Deep Cosmos, Moonlit Ocean, Firefly Forest, Alpine, Zen, Void, Lava Lamp, Tide, Bauhaus Shapes, Synthwave, Ensō, Orbits, Radar, Fibonacci clock, Pendulum, Hourglass, Spiral |
 | **Photo (5)** & **Charging (2)** | Photo Frame / Clock / Weather / Agenda / Split, Charging Orb, Power Ring |
+| **Music & Calendar (2)** | **Vinyl** (a turntable that spins your album art while music plays), **Big Date** (editorial calendar with what's next) |
 
 Every face is a pure function of live data (time, battery, weather, calendar, alarms, locations) and scales from gallery thumbnails to tablets.
 
@@ -67,7 +76,7 @@ Analog & digital clocks · World clock · Month calendar · Up Next (device cale
 
 ### StandBy Studio
 A redesigned settings app with a live preview, a setup checklist for permissions, and five tabs:
-**Faces** (searchable gallery of live previews, favourites) · **Widgets** (layouts, slots, smart stacks) · **Display** (14 accents, seconds motion, brightness, night mode, screen care) · **Data** (weather city, world clocks, photos, countdown, calendar, privacy, reminders, notes, GitHub) · **Behaviour** (auto-start rules, demo mode, gestures).
+**Faces** (searchable gallery of live previews, favourites) · **Widgets** (layouts, slots, smart stacks) · **Display** (themes, typeface, backdrop, 20 accents, seconds motion, brightness, night mode and night face, screen care) · **Data** (weather city, world clocks, photos, countdown, calendar, privacy, reminders, notes, GitHub) · **Behaviour** (auto-start rules, screen saver, bedtime & battery, backup, demo mode, gestures).
 
 ---
 
@@ -96,10 +105,11 @@ app/src/main/java/com/standbypro
 ├── audio/            Sleep-sound synthesis + sleep timer
 ├── data/             Weather, air quality, calendar, alarms, tasks, timers, locations, GitHub
 ├── domain/           Models, FaceContext, face & widget registries
+├── dream/            System screen saver (DreamService)
 ├── media/            Now Playing (MediaSession)
 ├── notifications/    Notification listener + repository
 ├── services/         Charging/orientation/lock monitor service
-├── settings/         Settings model + DataStore repository
+├── settings/         Settings model, DataStore repository, JSON backup
 └── ui/
     ├── design/       Design system
     ├── faces/        All watch faces

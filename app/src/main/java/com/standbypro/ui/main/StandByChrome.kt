@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Umbrella
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -110,6 +111,7 @@ fun LiveActivityPill(activity: LiveActivityState?, accent: Color, modifier: Modi
             val icon = when (a) {
                 is LiveActivityState.MusicActivity -> Icons.Default.MusicNote
                 is LiveActivityState.EventActivity -> Icons.Default.Event
+                is LiveActivityState.WeatherActivity -> Icons.Default.Umbrella
                 else -> Icons.Default.Timer
             }
             val tint = (a as? LiveActivityState.EventActivity)?.colorArgb?.let { Color(it) } ?: accent

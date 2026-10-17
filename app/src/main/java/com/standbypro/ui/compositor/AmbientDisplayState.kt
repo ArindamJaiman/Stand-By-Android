@@ -8,6 +8,7 @@ import com.standbypro.domain.LiveActivityState
 import com.standbypro.domain.NotificationDisplayState
 import com.standbypro.domain.WidgetSlot
 import com.standbypro.settings.NightStyle
+import com.standbypro.ui.design.Backdrop
 
 /**
  * Snapshot of the ambient display chrome (layout, night rendition, protection offsets).
@@ -26,5 +27,6 @@ data class AmbientDisplayState(
     val notificationState: NotificationDisplayState = NotificationDisplayState(),
     val burnInOffset: Offset = Offset.Zero,
     val activeThemeColor: Color = Color(0xFFFF9500),
-    val isDimmed: Boolean = false
+    val isDimmed: Boolean = false,
+    val backdrop: Backdrop = Backdrop.BLACK
 )

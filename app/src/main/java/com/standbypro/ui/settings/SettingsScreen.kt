@@ -64,6 +64,7 @@ import com.standbypro.domain.WatchFaceRegistry
 import com.standbypro.media.NowPlayingRepository
 import com.standbypro.ui.StandByViewModel
 import com.standbypro.ui.compositor.AmbientCompositor
+import com.standbypro.ui.design.BackdropLayer
 import com.standbypro.ui.design.Ink
 import com.standbypro.ui.main.nightFilter
 
@@ -136,9 +137,9 @@ fun SettingsScreen(
                     Modifier.fillMaxWidth().aspectRatio(2.05f).clip(RoundedCornerShape(26.dp)).background(Color.Black)
                         .border(1.dp, Brush.verticalGradient(listOf(Ink.HairlineStrong, Ink.Hairline)), RoundedCornerShape(26.dp))
                         .nightFilter(settings.nightStyle, if (previewNight) 1f else 0f)
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
-                    AmbientCompositor(ambient.copy(isNight = previewNight), ctx.copy(isNight = previewNight), Modifier.fillMaxSize())
+                    BackdropLayer(settings.backdrop, accent, animate = false, modifier = Modifier.fillMaxSize())
+                    AmbientCompositor(ambient.copy(isNight = previewNight), ctx.copy(isNight = previewNight), Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp))
                 }
                 Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PreviewChip(WatchFaceRegistry.getById(settings.activeWatchFaceId).name, accent, true) { tab = StudioTab.FACES }
@@ -210,7 +211,7 @@ fun SettingsScreen(
         when (tab) {
             StudioTab.FACES -> facesTab(viewModel, settings, ctx, query, { query = it }, category, { category = it }, favoritesOnly, { favoritesOnly = it })
             StudioTab.WIDGETS -> widgetsTab(viewModel, settings, ctx)
-            StudioTab.DISPLAY -> displayTab(viewModel, settings)
+            StudioTab.DISPLAY -> displayTab(viewModel, settings, ctx)
             StudioTab.DATA -> dataTab(viewModel, settings, calendarGranted, listenerAccess, { calendarLauncher.launch(Manifest.permission.READ_CALENDAR) })
             StudioTab.BEHAVIOUR -> behaviourTab(viewModel, settings)
         }

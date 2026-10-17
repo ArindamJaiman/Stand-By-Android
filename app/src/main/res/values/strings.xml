@@ -9,4 +9,5 @@
     <string name="widget_description">Clock, next alarm and battery. Tap to start StandBy.</string>
     <string name="widget_hint">Tap for StandBy</string>
     <string name="channel_battery_alerts">Battery alerts</string>
+    <string name="dream_label">StandBy Pro</string>
 </resources>
