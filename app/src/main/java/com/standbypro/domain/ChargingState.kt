@@ -23,5 +23,8 @@ data class ChargingState(
     val batteryPercent: Int = 0,
     val chargeType: ChargeType = ChargeType.NONE,
     val temperatureCelsius: Float? = null,
-    val health: BatteryHealth = BatteryHealth.UNKNOWN
+    val health: BatteryHealth = BatteryHealth.UNKNOWN,
+    /** Estimated time to full in ms, or null when unknown / not charging. */
+    val chargeTimeRemainingMs: Long? = null,
+    val voltageMv: Int? = null
 )

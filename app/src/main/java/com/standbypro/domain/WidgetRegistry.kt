@@ -2,79 +2,67 @@ package com.standbypro.domain
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import com.standbypro.data.GitHubRepository
-import com.standbypro.ui.components.GitHubContributionWidget
 import com.standbypro.ui.widgets.*
-import java.time.LocalDateTime
 
 /**
  * Centralized registry of all StandBy widgets with metadata and composable dispatch.
  */
 object WidgetRegistry {
 
-    private val widgets: List<StandByWidgetDefinition> = listOf(
-        StandByWidgetDefinition("widget_calendar", "Month Calendar", WidgetCategory.CALENDAR, WidgetSize.MEDIUM, description = "Interactive month calendar with day highlights"),
-        StandByWidgetDefinition("widget_agenda", "Upcoming Schedule", WidgetCategory.CALENDAR, WidgetSize.MEDIUM, description = "List of upcoming calendar meetings and events"),
-        StandByWidgetDefinition("widget_weather", "Live Weather", WidgetCategory.WEATHER, WidgetSize.MEDIUM, description = "Current temperature, weather condition, and daily extremes"),
-        StandByWidgetDefinition("widget_battery", "Power & Battery", WidgetCategory.BATTERY, WidgetSize.MEDIUM, description = "Battery percentage, charging speed, and status"),
-        StandByWidgetDefinition("widget_github", "GitHub Heatmap", WidgetCategory.GITHUB, WidgetSize.MEDIUM, description = "14-week commit matrix, streaks, and annual totals"),
-        StandByWidgetDefinition("widget_music", "Music Player", WidgetCategory.MUSIC, WidgetSize.MEDIUM, description = "Playback controls, album track info, and scrub bar"),
-        StandByWidgetDefinition("widget_lyrics", "Live Lyrics", WidgetCategory.MUSIC, WidgetSize.MEDIUM, description = "Synchronized live lyrics line for current track"),
-        StandByWidgetDefinition("widget_timer", "Countdown Timer", WidgetCategory.TIMER, WidgetSize.MEDIUM, description = "Interactive countdown timer with start/pause/reset"),
-        StandByWidgetDefinition("widget_stopwatch", "Stopwatch", WidgetCategory.STOPWATCH, WidgetSize.MEDIUM, description = "Millisecond stopwatch with lap timing"),
-        StandByWidgetDefinition("widget_pomodoro", "Pomodoro Focus", WidgetCategory.TODO, WidgetSize.MEDIUM, description = "25m focus & 5m break interval productivity tracker"),
-        StandByWidgetDefinition("widget_world_clock", "World Clocks", WidgetCategory.WORLD_CLOCK, WidgetSize.MEDIUM, description = "Dual timezone clocks with international offset"),
-        StandByWidgetDefinition("widget_todo", "To-Do Checklist", WidgetCategory.TODO, WidgetSize.MEDIUM, description = "Interactive bedside task checklist with completion toggles"),
-        StandByWidgetDefinition("widget_notes", "Bedside Notes", WidgetCategory.NOTES, WidgetSize.MEDIUM, description = "Pinned quick notes and bedside thoughts"),
-        StandByWidgetDefinition("widget_system", "System Status", WidgetCategory.SYSTEM, WidgetSize.MEDIUM, description = "Kernel uptime, memory headroom, and sensor status"),
-        StandByWidgetDefinition("widget_alarm", "Next Alarm", WidgetCategory.ALARM, WidgetSize.MEDIUM, description = "Scheduled alarm time and countdown")
+    private class Entry(val definition: StandByWidgetDefinition, val content: @Composable (FaceContext, Modifier) -> Unit)
+
+    private fun widget(
+        id: String,
+        name: String,
+        category: WidgetCategory,
+        description: String,
+        content: @Composable (FaceContext, Modifier) -> Unit
+    ) = Entry(StandByWidgetDefinition(id, name, category, WidgetSize.MEDIUM, description = description), content)
+
+    private val entries: List<Entry> = listOf(
+        widget("widget_clock_analog", "Analog Clock", WidgetCategory.CLOCK, "StandBy analog clock tile") { c, m -> AnalogClockWidget(c, m) },
+        widget("widget_clock_digital", "Digital Clock", WidgetCategory.CLOCK, "Large digital time and date") { c, m -> DigitalClockWidget(c, m) },
+        widget("widget_world_clock", "World Clock", WidgetCategory.WORLD_CLOCK, "Your cities with live time and offset") { c, m -> WorldClockWidget(c, m) },
+        widget("widget_calendar", "Month Calendar", WidgetCategory.CALENDAR, "This month with today and event days marked") { c, m -> CalendarWidget(c, m) },
+        widget("widget_agenda", "Up Next", WidgetCategory.CALENDAR, "Upcoming events from your calendars") { c, m -> AgendaWidget(c, m) },
+        widget("widget_weather", "Weather", WidgetCategory.WEATHER, "Current conditions with an hourly strip") { c, m -> WeatherWidget(c, m) },
+        widget("widget_forecast", "Forecast", WidgetCategory.WEATHER, "Five-day forecast with range bars") { c, m -> ForecastWidget(c, m) },
+        widget("widget_music", "Now Playing", WidgetCategory.MUSIC, "Album art, progress and controls for any media app") { c, m -> MusicWidget(c, m) },
+        widget("widget_battery", "Battery", WidgetCategory.BATTERY, "Charge ring, source, temperature and time to full") { c, m -> BatteryWidget(c, m) },
+        widget("widget_alarm", "Next Alarm", WidgetCategory.ALARM, "Your next system alarm with countdown") { c, m -> AlarmWidget(c, m) },
+        widget("widget_timer", "Timer", WidgetCategory.TIMER, "Countdown timer with presets") { c, m -> TimerWidget(c, m) },
+        widget("widget_stopwatch", "Stopwatch", WidgetCategory.STOPWATCH, "Stopwatch with laps") { c, m -> StopwatchWidget(c, m) },
+        widget("widget_pomodoro", "Pomodoro", WidgetCategory.PRODUCTIVITY, "Focus sessions with automatic breaks") { c, m -> PomodoroWidget(c, m) },
+        widget("widget_day_progress", "Progress", WidgetCategory.PRODUCTIVITY, "Day, week, month and year progress") { c, m -> DayProgressWidget(c, m) },
+        widget("widget_countdown", "Countdown", WidgetCategory.PRODUCTIVITY, "Days until your chosen date") { c, m -> CountdownWidget(c, m) },
+        widget("widget_todo", "Reminders", WidgetCategory.TODO, "Tap to tick off bedside reminders") { c, m -> TodoWidget(c, m) },
+        widget("widget_notes", "Notes", WidgetCategory.NOTES, "Your pinned note") { c, m -> NotesWidget(c, m) },
+        widget("widget_notifications", "Notifications", WidgetCategory.NOTIFICATIONS, "Recent notifications, privacy-aware") { c, m -> NotificationsWidget(c, m) },
+        widget("widget_moon", "Moon", WidgetCategory.ASTRONOMY, "Moon phase, illumination and next full moon") { c, m -> MoonWidget(c, m) },
+        widget("widget_sun", "Sun", WidgetCategory.ASTRONOMY, "Sunrise, sunset and the sun's position") { c, m -> SunWidget(c, m) },
+        widget("widget_photos", "Photos", WidgetCategory.PHOTO, "Slideshow of your favourite photos") { c, m -> PhotoWidget(c, m) },
+        widget("widget_quote", "Quote", WidgetCategory.INSPIRATION, "A new quote every day") { c, m -> QuoteWidget(c, m) },
+        widget("widget_system", "System", WidgetCategory.SYSTEM, "Memory, storage and uptime") { c, m -> SystemWidget(c, m) },
+        widget("widget_github", "GitHub", WidgetCategory.GITHUB, "Contribution heatmap, streak and yearly total") { c, m -> GitHubWidget(c, m) }
     )
+
+    private val byId = entries.associateBy { it.definition.id }
+    private val widgets: List<StandByWidgetDefinition> = entries.map { it.definition }
+
+    const val DEFAULT_WIDGET_ID = "widget_calendar"
 
     fun getAll(): List<StandByWidgetDefinition> = widgets
 
-    fun getById(id: String): StandByWidgetDefinition {
-        return widgets.firstOrNull { it.id.equals(id, ignoreCase = true) }
-            ?: widgets.first { it.id == "widget_calendar" }
-    }
+    fun contains(id: String): Boolean = byId.containsKey(id)
 
-    fun getByCategory(category: WidgetCategory): List<StandByWidgetDefinition> {
-        return widgets.filter { it.category == category }
-    }
+    fun getById(id: String): StandByWidgetDefinition =
+        byId[id]?.definition ?: widgets.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: byId.getValue(DEFAULT_WIDGET_ID).definition
+
+    fun getByCategory(category: WidgetCategory): List<StandByWidgetDefinition> = widgets.filter { it.category == category }
 
     @Composable
-    fun Render(
-        id: String,
-        time: LocalDateTime,
-        chargingState: ChargingState,
-        nextAlarm: String?,
-        accentColor: Color,
-        modifier: Modifier = Modifier
-    ) {
-        when (id) {
-            "widget_calendar" -> CalendarStandByWidget(time, chargingState, nextAlarm, accentColor, modifier)
-            "widget_agenda" -> AgendaStandByWidget(accentColor, modifier)
-            "widget_weather" -> WeatherStandByWidget(accentColor, modifier)
-            "widget_battery" -> BatteryStandByWidget(chargingState, accentColor, modifier)
-            "widget_github" -> {
-                val gitHubState = GitHubRepository.contributionsState
-                GitHubContributionWidget(
-                    state = gitHubState.value,
-                    accentColor = accentColor,
-                    modifier = modifier
-                )
-            }
-            "widget_music" -> MusicStandByWidget(accentColor, modifier)
-            "widget_lyrics" -> LyricsStandByWidget(accentColor, modifier)
-            "widget_timer" -> TimerStandByWidget(accentColor, modifier)
-            "widget_stopwatch" -> StopwatchStandByWidget(accentColor, modifier)
-            "widget_pomodoro" -> PomodoroStandByWidget(accentColor, modifier)
-            "widget_world_clock" -> WorldClockStandByWidget(accentColor, modifier)
-            "widget_todo" -> TodoStandByWidget(accentColor, modifier)
-            "widget_notes" -> NotesStandByWidget(accentColor, modifier)
-            "widget_system" -> SystemStatusStandByWidget(accentColor, modifier)
-            "widget_alarm" -> AlarmStandByWidget(nextAlarm, accentColor, modifier)
-            else -> CalendarStandByWidget(time, chargingState, nextAlarm, accentColor, modifier)
-        }
+    fun Render(id: String, ctx: FaceContext, modifier: Modifier = Modifier) {
+        val entry = byId[id] ?: byId.getValue(DEFAULT_WIDGET_ID)
+        entry.content(ctx, modifier)
     }
 }

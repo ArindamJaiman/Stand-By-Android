@@ -99,12 +99,21 @@ class ChargingStateMonitor(private val context: Context) {
             else -> BatteryHealth.UNKNOWN
         }
 
+        val remaining = if (isCharging && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            (context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager)
+                ?.computeChargeTimeRemaining()
+                ?.takeIf { it > 0 }
+        } else null
+        val voltage = batteryIntent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1).takeIf { it > 0 }
+
         return ChargingState(
             isCharging = isCharging,
             batteryPercent = batteryPercent,
             chargeType = chargeType,
             temperatureCelsius = temperatureCelsius,
-            health = health
+            health = health,
+            chargeTimeRemainingMs = remaining,
+            voltageMv = voltage
         )
     }
 }

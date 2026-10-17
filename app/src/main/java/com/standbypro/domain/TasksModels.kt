@@ -21,5 +21,8 @@ data class CalendarEventItem(
     val timeRange: String,
     val location: String? = null,
     val isAllDay: Boolean = false,
-    val colorHex: String = "#00E5FF"
+    val colorHex: String = "#00E5FF",
+    val startMillis: Long = 0L,
+    val endMillis: Long = 0L,
+    val colorArgb: Int? = null
 )

@@ -64,6 +64,22 @@ object DemoDataProvider {
         TodoItem("td_4", "Inspect OLED true black burn-in offsets", false, "Display")
     )
 
+    val starterTodos = listOf(
+        TodoItem("td_welcome_1", "Charge phone on the stand", true, "Today"),
+        TodoItem("td_welcome_2", "Pick a favourite watch face", false, "Today"),
+        TodoItem("td_welcome_3", "Add your city for live weather", false, "Setup")
+    )
+
+    val starterNotes = listOf(
+        BedsideNote(
+            id = "note_welcome",
+            title = "Welcome to StandBy Pro",
+            content = "Swipe left/right for pages, up/down for faces. Long-press to pick a favourite. Double-tap for the next face.",
+            isPinned = true,
+            timestamp = "Tip"
+        )
+    )
+
     val demoNotes = listOf(
         BedsideNote(
             id = "note_1",

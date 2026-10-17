@@ -5,33 +5,30 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 
+/** Tracks the last touch and reports when the display should fall back to its dimmed state. */
 object AutoDimController {
-    private const val DIM_TIMEOUT_MS = 30_000L // 30 seconds
-
-    private val _isDimmed = MutableStateFlow(false)
-    val isDimmed: StateFlow<Boolean> = _isDimmed.asStateFlow()
 
     @Volatile
     private var lastInteractionTime = System.currentTimeMillis()
 
+    private val _interactions = MutableStateFlow(0L)
+    /** Bumps on every interaction; used to restart the controls auto-hide timer. */
+    val interactions: StateFlow<Long> = _interactions.asStateFlow()
+
     fun reportInteraction() {
         lastInteractionTime = System.currentTimeMillis()
-        _isDimmed.value = false
+        _interactions.value = lastInteractionTime
     }
 
-    val dimStateMonitor: Flow<Boolean> = flow {
-        // Always emit initial state
+    fun dimState(timeoutMs: Long): Flow<Boolean> = flow {
         emit(false)
         while (true) {
-            delay(1000L)
-            val elapsed = System.currentTimeMillis() - lastInteractionTime
-            val shouldDim = elapsed > DIM_TIMEOUT_MS
-            if (shouldDim != _isDimmed.value) {
-                _isDimmed.value = shouldDim
-                emit(shouldDim)
-            }
+            val idle = System.currentTimeMillis() - lastInteractionTime
+            emit(idle >= timeoutMs)
+            delay(if (idle >= timeoutMs) 500L else (timeoutMs - idle).coerceIn(250L, 1000L))
         }
-    }
+    }.distinctUntilChanged()
 }

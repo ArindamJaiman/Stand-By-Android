@@ -180,8 +180,8 @@ class StandByService : Service() {
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_SINGLE_TOP or
                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-            putExtra("EXTRA_START_STANDBY", true)
-            putExtra("EXTRA_AUTO_STARTED", true)
+            putExtra(MainActivity.EXTRA_START_STANDBY, true)
+            putExtra(MainActivity.EXTRA_AUTO_STARTED, true)
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -222,11 +222,21 @@ class StandByService : Service() {
             "Waiting for charger (0% battery drain)"
         }
 
+        val openApp = PendingIntent.getActivity(
+            this,
+            1,
+            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_charging)
             .setContentTitle(title)
             .setContentText(text)
+            .setContentIntent(openApp)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setOnlyAlertOnce(true)
+            .setShowWhen(false)
             .setOngoing(true)
             .build()
     }

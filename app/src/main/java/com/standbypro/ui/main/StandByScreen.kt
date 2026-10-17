@@ -1,174 +1,386 @@
 package com.standbypro.ui.main
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BrightnessLow
-import androidx.compose.material.icons.filled.BrightnessMedium
-import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.standbypro.domain.FaceContext
+import com.standbypro.domain.WatchFaceRegistry
+import com.standbypro.domain.WidgetRegistry
+import com.standbypro.power.AutoDimController
 import com.standbypro.settings.StandByColorTheme
-import com.standbypro.theme.StandByNightRed
+import com.standbypro.settings.StandByPage
 import com.standbypro.ui.StandByViewModel
 import com.standbypro.ui.compositor.AmbientCompositor
+import com.standbypro.ui.design.Ink
+import com.standbypro.ui.faces.PhotoClockFace
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun StandByScreen(
     viewModel: StandByViewModel,
     onExit: () -> Unit,
+    onOpenStudio: () -> Unit = onExit,
     modifier: Modifier = Modifier
 ) {
-    val ambientState by viewModel.ambientDisplayState.collectAsState()
-    val currentTime by viewModel.currentTime.collectAsState()
-    val chargingState by viewModel.chargingState.collectAsState()
     val settings by viewModel.settings.collectAsState()
-    val nextAlarm = remember(currentTime.minute) { viewModel.getNextAlarm() }
+    val ctx by viewModel.faceContext.collectAsState()
+    val ambient by viewModel.ambientDisplayState.collectAsState()
+    val haptics = LocalHapticFeedback.current
+    val scope = rememberCoroutineScope()
 
-    Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
-        // Core Unified Ambient Compositor
-        AmbientCompositor(
-            state = ambientState,
-            currentTime = currentTime,
-            chargingState = chargingState,
-            nextAlarm = nextAlarm,
-            onUserInteraction = { viewModel.reportInteraction() },
-            onCycleFace = { viewModel.cycleWatchFace() },
-            onCycleRightWidget = { viewModel.cycleRightWidget() },
-            modifier = Modifier.fillMaxSize()
-        )
+    var controlsVisible by remember { mutableStateOf(true) }
+    var pickerVisible by remember { mutableStateOf(false) }
+    var lastTouch by remember { mutableIntStateOf(0) }
+    var chargingSplash by remember { mutableStateOf(settings.showChargingAnimation && ambient.isCharging) }
 
-        // Top Overlay Bar: Exit button, Theme cycling swatch, 10-step Brightness Notch, Night mode pill
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 16.dp)
-                .align(Alignment.TopStart),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = onExit,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.12f))
-                    .size(34.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Exit StandBy",
-                    tint = ambientState.activeThemeColor.copy(alpha = 0.85f),
-                    modifier = Modifier.size(18.dp)
+    // Auto-hide chrome a few seconds after the last touch.
+    LaunchedEffect(controlsVisible, lastTouch) {
+        if (controlsVisible) {
+            delay(5000L)
+            controlsVisible = false
+        }
+    }
+    // Celebrate plugging in while the display is showing.
+    LaunchedEffect(Unit) {
+        snapshotFlow { ambient.isCharging }.distinctUntilChanged().drop(1).collect { charging ->
+            if (charging && settings.showChargingAnimation) chargingSplash = true
+        }
+    }
+
+    val pages = StandByPage.entries
+    val pagerState = rememberPagerState(initialPage = settings.startPage.ordinal) { pages.size }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.distinctUntilChanged().drop(1).collect { page ->
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            viewModel.setStartPage(pages[page])
+            controlsVisible = true
+            lastTouch++
+        }
+    }
+
+    val nightStrength by animateFloatAsState(if (ambient.isNight) 1f else 0f, tween(1500), label = "night")
+    val dimAlpha by animateFloatAsState(if (ambient.isDimmed && !controlsVisible) 0.55f else 0f, tween(1200), label = "dim")
+    val offset = IntOffset(ambient.burnInOffset.x.roundToInt(), ambient.burnInOffset.y.roundToInt())
+
+    fun touched() {
+        viewModel.reportInteraction()
+        lastTouch++
+    }
+
+    Box(
+        modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .nightFilter(ambient.nightStyle, nightStrength)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = {
+                        touched()
+                        if (pickerVisible) pickerVisible = false else controlsVisible = !controlsVisible
+                    },
+                    onDoubleTap = {
+                        touched()
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.cycleWatchFace()
+                    },
+                    onLongPress = {
+                        touched()
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        pickerVisible = true
+                        controlsVisible = false
+                    }
                 )
             }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            Box(
+                Modifier.fillMaxSize().offset { offset }.padding(horizontal = 22.dp, vertical = 14.dp)
             ) {
-                // Quick Color Theme Swatch Picker
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(settings.activeColorTheme.color)
-                        .clickable {
-                            viewModel.reportInteraction()
-                            val allThemes = StandByColorTheme.entries
-                            val currentIndex = allThemes.indexOfFirst { it.id == settings.colorThemeId }
-                            val nextTheme = allThemes[(currentIndex + 1) % allThemes.size]
-                            viewModel.setColorTheme(nextTheme.id)
-                        }
-                )
-
-                // Interactive 10-step Brightness Notch
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (settings.brightnessLevel <= 0.02f) ambientState.activeThemeColor.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.12f))
-                        .clickable {
-                            viewModel.reportInteraction()
-                            val current = settings.brightnessLevel
-                            val nextBrightness = when {
-                                current < 0.05f -> 0.10f
-                                current < 0.15f -> 0.20f
-                                current < 0.25f -> 0.30f
-                                current < 0.35f -> 0.40f
-                                current < 0.45f -> 0.50f
-                                current < 0.55f -> 0.60f
-                                current < 0.65f -> 0.70f
-                                current < 0.75f -> 0.80f
-                                current < 0.85f -> 0.90f
-                                current < 0.95f -> 1.00f
-                                else -> 0.01f // Wrap back to Most Dim
-                            }
-                            viewModel.setBrightnessLevel(nextBrightness)
-                        }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                ) {
-                    Icon(
-                        imageVector = if (settings.brightnessLevel <= 0.02f) Icons.Default.BrightnessLow else Icons.Default.BrightnessMedium,
-                        contentDescription = "Brightness Notch",
-                        tint = if (settings.brightnessLevel <= 0.02f) ambientState.activeThemeColor else Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = if (settings.brightnessLevel <= 0.02f) "MOST DIM" else "${(settings.brightnessLevel * 100).roundToInt()}%",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (settings.brightnessLevel <= 0.02f) ambientState.activeThemeColor else Color.White
-                    )
+                when (pages[page]) {
+                    StandByPage.DASHBOARD -> AmbientCompositor(ambient, ctx, Modifier.fillMaxSize())
+                    StandByPage.STACKS -> SmartStacks(ctx, settings.leftStack, settings.rightStack, settings.smartRotate, Modifier.fillMaxSize())
+                    StandByPage.PHOTOS -> PhotoClockFace(ctx, Modifier.fillMaxSize())
+                    StandByPage.CLOCK -> FaceCarousel(viewModel, ctx, settings.activeWatchFaceId, Modifier.fillMaxSize())
                 }
+            }
+        }
 
-                if (ambientState.isNight) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(StandByNightRed.copy(alpha = 0.2f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.NightsStay,
-                            contentDescription = null,
-                            tint = StandByNightRed,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "NIGHT MODE",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = StandByNightRed
-                        )
+        LiveActivityPill(ambient.liveActivity, ambient.activeThemeColor, Modifier.align(Alignment.TopCenter).padding(top = 10.dp))
+        NotificationBadge(ambient.notificationState, Modifier.align(Alignment.BottomStart).padding(start = 22.dp, bottom = 10.dp))
+
+        // Dim overlay (inactivity)
+        if (dimAlpha > 0.01f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dimAlpha)))
+
+        // Page dots
+        AnimatedVisibility(controlsVisible, Modifier.align(Alignment.BottomCenter).padding(bottom = 10.dp), enter = fadeIn(), exit = fadeOut()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                pages.forEachIndexed { i, _ ->
+                    val selected = pagerState.currentPage == i
+                    Box(Modifier.height(7.dp).width(if (selected) 20.dp else 7.dp).clip(RoundedCornerShape(50)).background(if (selected) Color.White else Color.White.copy(alpha = 0.3f)))
+                }
+            }
+        }
+
+        // Top controls
+        AnimatedVisibility(
+            controlsVisible,
+            Modifier.align(Alignment.TopCenter).fillMaxWidth(),
+            enter = fadeIn() + slideInVertically { -it / 2 },
+            exit = fadeOut() + slideOutVertically { -it / 2 }
+        ) {
+            ControlsBar(
+                pageLabel = pages[pagerState.currentPage].label,
+                faceName = WatchFaceRegistry.getById(settings.activeWatchFaceId).name,
+                brightness = settings.brightnessLevel,
+                isNight = ambient.isNight,
+                accent = ambient.activeThemeColor,
+                onExit = onExit,
+                onStudio = onOpenStudio,
+                onBrightness = { touched(); viewModel.setBrightnessLevel(it) },
+                onToggleNight = {
+                    touched()
+                    if (settings.demoModeEnabled) viewModel.setSimulateNight(!settings.simulateNight)
+                    else viewModel.setNightModeEnabled(!settings.nightModeEnabled)
+                },
+                onCycleTheme = {
+                    touched()
+                    val all = StandByColorTheme.entries
+                    val idx = all.indexOfFirst { it.id == settings.colorThemeId }
+                    viewModel.setColorTheme(all[(idx + 1) % all.size].id)
+                },
+                onFaces = { touched(); pickerVisible = true; controlsVisible = false }
+            )
+        }
+
+        // Long-press favourites picker
+        AnimatedVisibility(pickerVisible, Modifier.align(Alignment.BottomCenter), enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it }) {
+            FavoritesPicker(
+                ctx = ctx,
+                activeId = settings.activeWatchFaceId,
+                favorites = viewModel.favoriteFaces(settings),
+                onPick = { id ->
+                    touched()
+                    viewModel.setActiveWatchFaceId(id)
+                    scope.launch {
+                        delay(250L)
+                        pickerVisible = false
                     }
+                }
+            )
+        }
+
+        ChargingOverlay(chargingSplash, ctx.battery) { chargingSplash = false }
+    }
+}
+
+/** Two independent vertical smart stacks, auto-rotating like iOS Smart Rotate. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SmartStacks(ctx: FaceContext, left: List<String>, right: List<String>, smartRotate: Boolean, modifier: Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        SmartStack(left.filter { WidgetRegistry.contains(it) }.ifEmpty { listOf("widget_clock_analog") }, ctx, smartRotate, 0, Modifier.weight(1f).fillMaxHeight())
+        SmartStack(right.filter { WidgetRegistry.contains(it) }.ifEmpty { listOf("widget_calendar") }, ctx, smartRotate, 1, Modifier.weight(1f).fillMaxHeight())
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SmartStack(ids: List<String>, ctx: FaceContext, smartRotate: Boolean, salt: Int, modifier: Modifier) {
+    val state = rememberPagerState { ids.size }
+    val interaction by AutoDimController.interactions.collectAsState()
+    LaunchedEffect(ids, smartRotate, interaction) {
+        if (!smartRotate || ids.size < 2) return@LaunchedEffect
+        delay(3 * 60 * 1000L + salt * 45_000L)
+        while (true) {
+            state.animateScrollToPage((state.currentPage + 1) % ids.size)
+            delay(3 * 60 * 1000L)
+        }
+    }
+    Box(modifier) {
+        VerticalPager(state = state, modifier = Modifier.fillMaxSize(), pageSpacing = 12.dp) { page ->
+            WidgetRegistry.Render(ids[page], ctx.copy(isCompact = true), Modifier.fillMaxSize())
+        }
+        if (ids.size > 1) {
+            Column(Modifier.align(Alignment.CenterEnd).padding(end = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                ids.indices.forEach { i ->
+                    Box(Modifier.size(width = 4.dp, height = if (i == state.currentPage) 14.dp else 4.dp).clip(RoundedCornerShape(50)).background(if (i == state.currentPage) Color.White.copy(alpha = 0.8f) else Color.White.copy(alpha = 0.25f)))
+                }
+            }
+        }
+    }
+}
+
+/** Full-screen faces; swipe up/down through favourites. */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FaceCarousel(viewModel: StandByViewModel, ctx: FaceContext, activeId: String, modifier: Modifier) {
+    val settings by viewModel.settings.collectAsState()
+    val faces = remember(settings.favoriteFaceIds) { viewModel.favoriteFaces(settings) }
+    val initial = faces.indexOf(activeId).coerceAtLeast(0)
+    val state = rememberPagerState(initialPage = initial) { faces.size }
+    LaunchedEffect(activeId, faces) {
+        val idx = faces.indexOf(activeId)
+        if (idx >= 0 && idx != state.currentPage) state.scrollToPage(idx)
+    }
+    LaunchedEffect(state, faces) {
+        snapshotFlow { state.settledPage }.distinctUntilChanged().drop(1).collect { p ->
+            faces.getOrNull(p)?.let { if (it != viewModel.settings.value.activeWatchFaceId) viewModel.setActiveWatchFaceId(it) }
+        }
+    }
+    VerticalPager(state = state, modifier = modifier, beyondViewportPageCount = 0) { page ->
+        WatchFaceRegistry.Render(faces[page], ctx, Modifier.fillMaxSize())
+    }
+}
+
+@Composable
+private fun ControlsBar(
+    pageLabel: String,
+    faceName: String,
+    brightness: Float,
+    isNight: Boolean,
+    accent: Color,
+    onExit: () -> Unit,
+    onStudio: () -> Unit,
+    onBrightness: (Float) -> Unit,
+    onToggleNight: () -> Unit,
+    onCycleTheme: () -> Unit,
+    onFaces: () -> Unit
+) {
+    var local by remember(brightness) { mutableFloatStateOf(brightness) }
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        RoundChip(Icons.AutoMirrored.Filled.ArrowBack, "Exit StandBy", onExit)
+        Column(Modifier.weight(1f)) {
+            Text(pageLabel.uppercase(), color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.4.sp)
+            Text(faceName, color = Ink.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        }
+        Row(
+            Modifier.width(220.dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.10f)).padding(horizontal = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.BrightnessLow, null, tint = Ink.TextSecondary, modifier = Modifier.size(16.dp))
+            Slider(
+                value = local,
+                onValueChange = { local = it; onBrightness(it) },
+                valueRange = 0.01f..1f,
+                modifier = Modifier.weight(1f).height(32.dp),
+                colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = accent, inactiveTrackColor = Color.White.copy(alpha = 0.2f))
+            )
+            Icon(Icons.Default.BrightnessHigh, null, tint = Ink.TextSecondary, modifier = Modifier.size(16.dp))
+        }
+        RoundChip(if (isNight) Icons.Default.LightMode else Icons.Default.DarkMode, "Night mode", onToggleNight, active = isNight, accent = Ink.Red)
+        RoundChip(Icons.Default.Palette, "Accent colour", onCycleTheme, accent = accent)
+        RoundChip(Icons.Default.Star, "Favourite faces", onFaces)
+        RoundChip(Icons.Default.Tune, "Open Studio", onStudio)
+    }
+}
+
+@Composable
+private fun RoundChip(icon: androidx.compose.ui.graphics.vector.ImageVector, description: String, onClick: () -> Unit, active: Boolean = false, accent: Color = Color.White) {
+    Box(
+        Modifier.size(40.dp).clip(CircleShape)
+            .background(if (active) accent.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.10f))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, description, tint = if (active) accent else Ink.TextPrimary, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** Bottom sheet of live favourite faces (static previews). */
+@Composable
+private fun FavoritesPicker(ctx: FaceContext, activeId: String, favorites: List<String>, onPick: (String) -> Unit) {
+    val preview = ctx.copy(isPreview = true, isCompact = true)
+    Column(
+        Modifier.fillMaxWidth().background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.92f)))).padding(top = 30.dp, bottom = 16.dp)
+    ) {
+        Text("FAVOURITES  ·  double-tap the display to cycle", color = Ink.TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, modifier = Modifier.padding(start = 24.dp, bottom = 8.dp))
+        LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            itemsIndexed(favorites, key = { _, id -> id }) { _, id ->
+                val selected = id == activeId
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        Modifier.size(width = 150.dp, height = 110.dp).clip(RoundedCornerShape(20.dp)).background(Ink.Graphite)
+                            .border(if (selected) 2.dp else 1.dp, if (selected) ctx.accent else Ink.Hairline, RoundedCornerShape(20.dp))
+                            .clickable { onPick(id) }
+                    ) {
+                        WatchFaceRegistry.Render(id, preview, Modifier.fillMaxSize())
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(WatchFaceRegistry.getById(id).name, color = if (selected) ctx.accent else Ink.TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 }
             }
         }

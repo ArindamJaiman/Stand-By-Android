@@ -1,89 +1,117 @@
 # 🌙 StandBy Pro for Android
 
 <p align="center">
-  <b>A production-grade, immersive ambient smart display for Android inspired by iOS StandBy.</b><br>
-  Engineered with Jetpack Compose, Material 3, and native Android hardware sensors.
+  <b>An iOS-style StandBy smart display for Android — 110+ watch faces, 24 live widgets, smart stacks and a true red night mode.</b><br>
+  Built with Jetpack Compose and Material 3. No ads, no accounts, no trackers.
 </p>
 
 ---
 
-## 📱 Highlights & Features
+## ✨ What's inside
 
-- ⚡ **Auto-Activation Engine**: Background foreground service (`StandByService`) constantly detects real hardware charging state (USB, AC, Wireless) and physical orientation (via accelerometer telemetry) to launch StandBy automatically when placed on a stand or charger.
-- 🕒 **Adaptive Clock Faces**:
-  - **Digital Clock**: Ultra-clean typographic design with configurable 12h/24h formats, seconds display, and date typography.
-  - **Analog Clock**: Precision canvas-rendered analog face with smooth second sweep and hour tick markers.
-  - **Instant Style Switcher**: Tap the clock face at any time to fluidly toggle between digital and analog modes.
-- 📊 **Two-Panel Smart Widget Stack**:
-  - **Left Panel**: Ambient clock presentation.
-  - **Right Panel**: Real-time live status cards including full calendar date, exact battery percentage & charging mode with battery temperature, and upcoming system alarms.
-- 🔴 **Sensor-Driven Night Mode**:
-  - Hardware ambient light sensor monitoring (`< 5 lux` threshold with hysteresis).
-  - Smooth 1.5-second chromatic transition to deep crimson red (`#E53935`), preserving dark adaptation and nighttime comfort.
-- 🛡️ **OLED Burn-In Protection**:
-  - Periodic sub-pixel displacement algorithm applying micro-coordinate shifts to prevent OLED / AMOLED image retention.
-- 💡 **Intelligent Auto-Dimming**:
-  - Smoothly dims the screen after 30 seconds of inactivity to save battery and reduce glare.
-  - Wakes up immediately upon screen touch.
-- ⚙️ **Comprehensive In-App Settings**:
-  - Full preference suite backed by Jetpack DataStore.
-  - Live "Preview StandBy Mode" button to experience the ambient screen instantly.
-- 🎯 **Device Optimizations**:
-  - Engineered for modern Android devices, with special attention to **Nothing Phone (2a) Plus (Nothing OS)** and **Samsung Galaxy Tab (LineageOS / AOSP)**.
+### StandBy display
+- **Automatic launch** when the phone is charging, on its side and locked — exactly like iPhone. The monitor sleeps completely when unplugged (zero drain).
+- **Swipeable pages** (just like iOS): **Dashboard → Smart Stacks → Photos → Clock**.
+  - **Clock**: swipe up/down through your favourite faces.
+  - **Smart Stacks**: two independent widget stacks with **Smart Rotate**.
+  - **Photos**: your own photos with Ken Burns drift and cross-fades.
+  - **Dashboard**: face + widgets in Single, Dual, Triple or Quad layouts.
+- **Gestures**: tap for controls, double-tap for the next face, long-press for a live favourites picker.
+- **True night mode**: the entire display is re-rendered in red (or amber / dim white) through a colour matrix — triggered by the light sensor, a bedtime schedule or always on. Brightness is capped automatically.
+- **Live Activity pill** for running timers, Pomodoro, stopwatch and now-playing media.
+- **Charging moment**: a glowing ring sweeps to your battery level when you plug in.
+- **Screen care**: slow burn-in drift, configurable auto-dim, per-frame-cheap rendering.
+
+### 110+ watch faces in 14 families
+| Family | Highlights |
+| --- | --- |
+| **Analog (29)** | StandBy Analog, Luxury Gold, Chronograph (working 24h/30-min/12h registers + tachymeter), Pilot, Diver 300M, Skeleton (moving gears), Tourbillon, Railway, Regulator, Pocket Watch, California, Field, Meridian, Typograph, Contour, Numerals, Solar Dial (real sun elevation), Infograph (live complications), Moonphase (real phase), Sundial, Rings… |
+| **Digital (21)** | Minimal, Float, Bold Stack, Vertical, OLED, Split, Gradient, Neon, Outline, Frosted Glass, Swiss Poster, Typewriter, Spoken, Word Clock, Seven Segment, Retro LCD, Dot Matrix, Nixie Tubes, Terminal, Binary, Seconds Ring |
+| **GMT & World (7)** | GMT Master (second time zone), GMT Calendar, World Time (rotating 24-city ring), Dual Time, World Clocks, Time Zones, Day & Night map with live terminator |
+| **Hybrid & Modular (8)** | Ana-Digi, Battery Gauge, Weather Dial, Day-Date, GMT Weather, Modular, Infograph Modular, Dashboard |
+| **Flip (6)** | Real animated split-flap cards: Classic, Midnight, Amber, Graphite, Paper, Seconds |
+| **Weather (6)** | Living Sky (animated real conditions), Weather Now, Hourly curve, Forecast bars, Thermo Dial, Sunrise & Sunset |
+| **Astronomy (3)** | Moon (real phase, next full/new), Orrery (planets where they are today), Night Sky |
+| **Productivity (7)** | Pomodoro, Timer, Stopwatch (working, with alarm chime), Deep Work, Progress, Countdown, Agenda |
+| **Ambient & Artistic (18)** | Aurora, Deep Cosmos, Moonlit Ocean, Firefly Forest, Alpine, Zen, Void, Lava Lamp, Tide, Bauhaus Shapes, Synthwave, Ensō, Orbits, Radar, Fibonacci clock, Pendulum, Hourglass, Spiral |
+| **Photo (5)** & **Charging (2)** | Photo Frame / Clock / Weather / Agenda / Split, Charging Orb, Power Ring |
+
+Every face is a pure function of live data (time, battery, weather, calendar, alarms, locations) and scales from gallery thumbnails to tablets.
+
+### 24 widgets — all real data
+Analog & digital clocks · World clock · Month calendar · Up Next (device calendar) · Weather · 5-day forecast · **Now Playing** (album art + controls for Spotify, YouTube Music, podcasts…) · Battery (time to full, temperature) · Next alarm · Timer · Stopwatch · Pomodoro · Progress · Countdown · Reminders · Notes · Notifications (privacy-aware) · Moon · Sun · Photos · Quote of the day · System (RAM, storage, uptime) · GitHub heatmap
+
+### Live data sources
+- **Weather**: [Open-Meteo](https://open-meteo.com) (free, no key). City search, or automatic from your time zone — no location permission needed. Cached for offline starts.
+- **Calendar**: device calendars via `CalendarContract` (read-only).
+- **Media & notifications**: `MediaSessionManager` + notification listener.
+- **Alarms**: `AlarmManager.nextAlarmClock` from any clock app.
+- **Sun, moon & planets**: computed offline on-device.
+
+### StandBy Studio
+A redesigned settings app with a live preview, a setup checklist for permissions, and five tabs:
+**Faces** (searchable gallery of live previews, favourites) · **Widgets** (layouts, slots, smart stacks) · **Display** (14 accents, seconds motion, brightness, night mode, screen care) · **Data** (weather city, world clocks, photos, countdown, calendar, privacy, reminders, notes, GitHub) · **Behaviour** (auto-start rules, demo mode, gestures).
 
 ---
 
-## 🛠️ Architecture & Tech Stack
-
-- **UI Framework**: Jetpack Compose with Material 3 design tokens
-- **Architecture**: MVI / MVVM reactive architecture with Kotlin Coroutines & `StateFlow`
-- **Sensors & Telemetry**:
-  - `Sensor.TYPE_LIGHT` (Ambient illuminance)
-  - `Sensor.TYPE_ACCELEROMETER` (Physical orientation detection)
-  - `BatteryManager` Broadcast telemetry (Charging status, temperature, health)
-  - `AlarmManager` (Next alarm scheduling integration)
-- **Persistence**: Jetpack DataStore Preferences
-- **Background Service**: Android Foreground Service with full-screen intent capabilities and debounce throttling
-- **Min SDK**: 26 (Android 8.0 Oreo) | **Target SDK**: 36 (Android 15+)
+## ⚡ Performance & battery
+- Second hands read the clock **only in the draw phase** — the composition never recomposes at 60 fps.
+- Static dials are cached in their own graphics layer; only the hands layer redraws.
+- Sweep is capped at 60 fps (30 fps for ambient art); night mode switches to a once-a-second tick; "Hidden" seconds stops frame loops entirely.
+- Gallery thumbnails render statically (no animation loops).
+- Timers run on monotonic deadlines, so they never drift.
 
 ---
 
-## 🚀 Getting Started & Building
+## 🛠 Architecture
+- **UI**: Jetpack Compose + Material 3, custom design system (`ui/design`: tokens, `AutoSizeText`, `DialKit`, weather glyphs, complications).
+- **State**: MVVM with Kotlin Flows — the view model assembles one immutable `FaceContext` for every face and widget.
+- **Registry**: `WatchFaceRegistry` / `WidgetRegistry` map ids to metadata and composables.
+- **Persistence**: Jetpack DataStore (settings), SharedPreferences (weather cache, reminders, notes).
+- **Background**: a foreground service gates sensors on charging state, then watches lock state and orientation.
+- **Min SDK** 26 · **Target SDK** 36.
 
-### Prerequisites
-- Android Studio Ladybug / Meerkat or command line tools
-- Android SDK (API 26 to API 36)
-- Java 17+
+```
+app/src/main/java/com/standbypro
+├── astro/            Sun, moon and planet maths
+├── data/             Weather, calendar, alarms, tasks, timers, locations, GitHub
+├── domain/           Models, FaceContext, face & widget registries
+├── media/            Now Playing (MediaSession)
+├── notifications/    Notification listener + repository
+├── services/         Charging/orientation/lock monitor service
+├── settings/         Settings model + DataStore repository
+└── ui/
+    ├── design/       Design system
+    ├── faces/        All watch faces
+    ├── widgets/      All widgets
+    ├── main/         StandBy display (pages, stacks, night filter, chrome)
+    ├── compositor/   Dashboard layouts
+    └── settings/     StandBy Studio
+```
 
-### Build APK
-Clone the repository and run Gradle:
+---
+
+## 🚀 Build
+Prerequisites: Android Studio (latest stable), Android SDK 36, JDK 17+.
+
 ```bash
 git clone https://github.com/ArindamJaiman/Stand-By-Android.git
 cd Stand-By-Android
-.\gradlew.bat assembleDebug
-```
-The output APK is generated at:
-```
-app/build/outputs/apk/debug/app-debug.apk
-```
-
-### Install onto Device
-```bash
+./gradlew assembleDebug          # APK: app/build/outputs/apk/debug/app-debug.apk
+./gradlew testDebugUnitTest      # unit tests (faces logic, astronomy, weather parsing…)
 adb install app/build/outputs/apk/debug/app-debug.apk
 ```
 
----
-
-## 👨‍💻 Developer & Author
-
-Crafted by **Arindam Jaiman**.
-
-- **GitHub**: [@ArindamJaiman](https://github.com/ArindamJaiman)
-- **LinkedIn**: [arindamjaiman](https://www.linkedin.com/in/arindamjaiman/)
-- **Instagram**: [@thearindamjaiman](https://www.instagram.com/thearindamjaiman)
+### First run checklist (shown in Studio)
+1. Allow **notifications** and **full-screen launch** (Android 14+) so StandBy can appear over the lock screen.
+2. Grant **notification access** for Now Playing and notification badges.
+3. Allow **calendar** access for agenda faces.
+4. Exclude StandBy from **battery optimisation** so the charging monitor stays alive.
 
 ---
+
+## 👨‍💻 Author
+Crafted by **Arindam Jaiman** — [GitHub](https://github.com/ArindamJaiman) · [LinkedIn](https://www.linkedin.com/in/arindamjaiman/) · [Instagram](https://www.instagram.com/thearindamjaiman)
 
 ## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).

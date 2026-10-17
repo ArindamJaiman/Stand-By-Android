@@ -1,5 +1,6 @@
 package com.standbypro
 
+import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -38,8 +44,7 @@ class MainActivity : ComponentActivity() {
 
     private val exitReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            // When user unplugs, unlocks the phone, or rotates portrait:
-            // If StandBy was launched automatically over the lock screen, finish to return to normal
+            // Unplugged, unlocked or rotated to portrait: an auto-started StandBy steps aside.
             if (isAutoStarted && isStandByActive) {
                 configureImmersiveStandBy(false)
                 finish()
@@ -50,39 +55,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Enable showWhenLocked and turnScreenOn as early as possible
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        } else {
-            @Suppress("DEPRECATION")
-            window.addFlags(
-                WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-            )
-        }
+        allowOverLockScreen(true)
 
-        // Start background service to monitor charging and orientation
         try {
             val serviceIntent = Intent(this, StandByService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent)
-            } else {
-                startService(serviceIntent)
-            }
+            startForegroundService(serviceIntent)
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
-        val launchStandBy = intent.getBooleanExtra("EXTRA_START_STANDBY", false)
-        isAutoStarted = intent.getBooleanExtra("EXTRA_AUTO_STARTED", false)
+        val launchStandBy = intent.getBooleanExtra(EXTRA_START_STANDBY, false)
+        isAutoStarted = intent.getBooleanExtra(EXTRA_AUTO_STARTED, false)
         isStandByActive = launchStandBy
+        if (launchStandBy) configureImmersiveStandBy(true)
 
-        if (launchStandBy) {
-            configureImmersiveStandBy(true)
-        }
-
-        // Register receiver for exit triggers
         val filter = IntentFilter().apply {
             addAction(StandByService.ACTION_EXIT_STANDBY)
             addAction(Intent.ACTION_USER_PRESENT)
@@ -90,6 +76,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(exitReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(exitReceiver, filter)
         }
 
@@ -97,74 +84,97 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val settings by viewModel.settings.collectAsState()
+            val ambient by viewModel.ambientDisplayState.collectAsState()
 
-            androidx.compose.runtime.LaunchedEffect(isStandByActive, settings.brightnessLevel) {
+            LaunchedEffect(isStandByActive, settings.brightnessLevel, ambient.isNight) {
                 val lp = window.attributes
-                if (isStandByActive) {
-                    lp.screenBrightness = settings.brightnessLevel.coerceIn(0.01f, 1.0f)
+                lp.screenBrightness = if (isStandByActive) {
+                    val level = settings.brightnessLevel.coerceIn(0.01f, 1.0f)
+                    if (ambient.isNight) level.coerceAtMost(0.06f) else level
                 } else {
-                    lp.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+                    WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
                 }
                 window.attributes = lp
             }
 
             StandByProTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    if (isStandByActive) {
-                        BackHandler {
-                            configureImmersiveStandBy(false)
-                            if (isAutoStarted) {
-                                finish()
-                            } else {
-                                isStandByActive = false
-                            }
-                        }
-                        StandByScreen(
-                            viewModel = viewModel,
-                            onExit = {
-                                configureImmersiveStandBy(false)
-                                if (isAutoStarted) {
-                                    finish()
-                                } else {
-                                    isStandByActive = false
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    AnimatedContent(
+                        targetState = isStandByActive,
+                        transitionSpec = { fadeIn(tween(450)) togetherWith fadeOut(tween(300)) },
+                        label = "mode"
+                    ) { standBy ->
+                        if (standBy) {
+                            BackHandler { leaveStandBy() }
+                            StandByScreen(
+                                viewModel = viewModel,
+                                onExit = { leaveStandBy() },
+                                onOpenStudio = { openStudio() }
+                            )
+                        } else {
+                            SettingsScreen(
+                                viewModel = viewModel,
+                                onLaunchPreview = {
+                                    isAutoStarted = false
+                                    configureImmersiveStandBy(true)
+                                    isStandByActive = true
                                 }
-                            }
-                        )
-                    } else {
-                        SettingsScreen(
-                            viewModel = viewModel,
-                            onLaunchPreview = {
-                                isAutoStarted = false
-                                configureImmersiveStandBy(true)
-                                isStandByActive = true
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
+    override fun onResume() {
+        super.onResume()
+        viewModel.onResume()
+    }
+
+    private fun leaveStandBy() {
+        configureImmersiveStandBy(false)
+        if (isAutoStarted) finish() else isStandByActive = false
+    }
+
+    /** From an auto-started (lock screen) session, ask the user to unlock before showing Studio. */
+    private fun openStudio() {
+        val keyguard = getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        if (isAutoStarted && keyguard?.isKeyguardLocked == true) {
+            keyguard.requestDismissKeyguard(this, object : KeyguardManager.KeyguardDismissCallback() {
+                override fun onDismissSucceeded() {
+                    isAutoStarted = false
+                    configureImmersiveStandBy(false)
+                    isStandByActive = false
+                }
+            })
+        } else {
+            isAutoStarted = false
+            configureImmersiveStandBy(false)
+            isStandByActive = false
+        }
+    }
+
+    private fun allowOverLockScreen(enable: Boolean) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
+            setShowWhenLocked(enable)
+            setTurnScreenOn(enable)
+        } else {
+            @Suppress("DEPRECATION")
+            if (enable) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+            }
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-            setShowWhenLocked(true)
-            setTurnScreenOn(true)
-        }
-        if (intent.getBooleanExtra("EXTRA_START_STANDBY", false)) {
-            isAutoStarted = intent.getBooleanExtra("EXTRA_AUTO_STARTED", false)
+        allowOverLockScreen(true)
+        if (intent.getBooleanExtra(EXTRA_START_STANDBY, false)) {
+            isAutoStarted = intent.getBooleanExtra(EXTRA_AUTO_STARTED, false)
             configureImmersiveStandBy(true)
             isStandByActive = true
         }
@@ -175,35 +185,27 @@ class MainActivity : ComponentActivity() {
         try {
             unregisterReceiver(exitReceiver)
         } catch (e: Exception) {
-            // Ignored
+            // Already unregistered.
         }
     }
 
     private fun configureImmersiveStandBy(enable: Boolean) {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
         if (enable) {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-                setShowWhenLocked(true)
-                setTurnScreenOn(true)
-            } else {
-                @Suppress("DEPRECATION")
-                window.addFlags(
-                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-                )
-            }
-
-            // Hide system bars for complete immersive display
-            val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-            windowInsetsController.systemBarsBehavior =
-                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+            allowOverLockScreen(true)
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.systemBars())
         } else {
             requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-            val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
-            windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+            controller.show(WindowInsetsCompat.Type.systemBars())
         }
+    }
+
+    companion object {
+        const val EXTRA_START_STANDBY = "EXTRA_START_STANDBY"
+        const val EXTRA_AUTO_STARTED = "EXTRA_AUTO_STARTED"
     }
 }

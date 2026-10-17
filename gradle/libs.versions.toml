@@ -16,6 +16,7 @@ lifecycleViewmodelNav3 = "2.10.0"
 datastore = "1.1.1"
 coil = "2.7.0"
 media3 = "1.4.0"
+json = "20240303"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCore" }
@@ -42,6 +43,7 @@ androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecy
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 androidx-media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
+json = { module = "org.json:json", version.ref = "json" }
 androidx-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 [plugins]

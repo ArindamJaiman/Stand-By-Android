@@ -6,16 +6,19 @@ package com.standbypro.domain
 enum class WatchFaceCategory(val displayName: String, val iconName: String) {
     DIGITAL("Digital", "Pin"),
     ANALOG("Analog", "Schedule"),
+    GMT("GMT & World", "Public"),
     HYBRID("Hybrid", "DashboardCustomize"),
-    GMT("GMT", "Public"),
+    MODULAR("Modular", "GridView"),
     FLIP("Flip Clock", "FlipCameraAndroid"),
-    WORLD_CLOCK("World Time", "Language"),
     WEATHER("Weather", "WbSunny"),
-    CALENDAR("Calendar", "CalendarMonth"),
+    ASTRONOMY("Astronomy", "DarkMode"),
     PRODUCTIVITY("Productivity", "Timer"),
-    PHOTO("Photo", "PhotoLibrary"),
     AMBIENT("Ambient", "NightsStay"),
-    ARTISTIC("Artistic", "Palette")
+    ARTISTIC("Artistic", "Palette"),
+    PHOTO("Photo", "PhotoLibrary"),
+    CHARGING("Charging", "BatteryChargingFull"),
+    WORLD_CLOCK("World Time", "Language"),
+    CALENDAR("Calendar", "CalendarMonth")
 }
 
 /**
@@ -29,5 +32,10 @@ data class WatchFaceDefinition(
     val supportsTheme: Boolean = true,
     val supportsWidgets: Boolean = true,
     val supportsAnimation: Boolean = true,
-    val isFavoriteByDefault: Boolean = false
+    val isFavoriteByDefault: Boolean = false,
+    val isNew: Boolean = false,
+    /** Faces with buttons (timers) that should receive taps instead of cycling. */
+    val isInteractive: Boolean = false,
+    /** Uses live data that needs a permission or network (weather, calendar, photos). */
+    val usesLiveData: Boolean = false
 )

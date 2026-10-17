@@ -1,34 +1,35 @@
 package com.standbypro.notifications
 
-import com.standbypro.data.DemoDataProvider
-import com.standbypro.domain.IncomingCallState
 import com.standbypro.domain.NotificationDisplayState
+import com.standbypro.domain.NotificationItem
 import com.standbypro.domain.NotificationPrivacy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/** Live notification feed populated by [StandByNotificationListener]. */
 object NotificationRepository {
 
-    private val _notifications = MutableStateFlow(DemoDataProvider.demoNotifications)
+    private val _notifications = MutableStateFlow(NotificationDisplayState())
     val notifications: StateFlow<NotificationDisplayState> = _notifications.asStateFlow()
 
-    private val _incomingCall = MutableStateFlow(DemoDataProvider.demoIncomingCall)
-    val incomingCall: StateFlow<IncomingCallState> = _incomingCall.asStateFlow()
+    private val _listenerConnected = MutableStateFlow(false)
+    val listenerConnected: StateFlow<Boolean> = _listenerConnected.asStateFlow()
+
+    fun update(items: List<NotificationItem>) {
+        _notifications.value = _notifications.value.copy(notifications = items, unreadCount = items.size)
+    }
+
+    fun setListenerConnected(connected: Boolean) {
+        _listenerConnected.value = connected
+        if (!connected) update(emptyList())
+    }
 
     fun setPrivacyMode(mode: NotificationPrivacy) {
         _notifications.value = _notifications.value.copy(privacyMode = mode)
     }
 
     fun dismissNotification(id: String) {
-        val updated = _notifications.value.notifications.filter { it.id != id }
-        _notifications.value = _notifications.value.copy(
-            notifications = updated,
-            unreadCount = updated.size
-        )
-    }
-
-    fun setSimulateIncomingCall(active: Boolean) {
-        _incomingCall.value = _incomingCall.value.copy(isIncoming = active)
+        update(_notifications.value.notifications.filter { it.id != id })
     }
 }

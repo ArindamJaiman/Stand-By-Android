@@ -21,8 +21,9 @@ class StandByProUnitTests {
     @Test
     fun testWatchFaceRegistry_countAndCategories() {
         val allFaces = WatchFaceRegistry.getAll()
-        // Must have at least 40 distinct faces
-        assertTrue("Expected >= 40 faces, found ${allFaces.size}", allFaces.size >= 40)
+        // A full catalogue of distinct faces with unique ids
+        assertTrue("Expected >= 100 faces, found ${allFaces.size}", allFaces.size >= 100)
+        assertEquals(allFaces.size, allFaces.map { it.id }.toSet().size)
 
         val digitalFaces = WatchFaceRegistry.getByCategory(WatchFaceCategory.DIGITAL)
         assertTrue(digitalFaces.isNotEmpty())
@@ -44,7 +45,8 @@ class StandByProUnitTests {
     @Test
     fun testWidgetRegistry_registration() {
         val allWidgets = WidgetRegistry.getAll()
-        assertTrue("Expected >= 14 widgets, found ${allWidgets.size}", allWidgets.size >= 14)
+        assertTrue("Expected >= 20 widgets, found ${allWidgets.size}", allWidgets.size >= 20)
+        assertEquals(allWidgets.size, allWidgets.map { it.id }.toSet().size)
 
         assertNotNull(WidgetRegistry.getById("widget_calendar"))
         assertNotNull(WidgetRegistry.getById("widget_weather"))

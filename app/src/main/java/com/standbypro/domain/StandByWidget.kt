@@ -17,7 +17,12 @@ enum class WidgetCategory(val displayName: String) {
     TODO("To-Do"),
     NOTES("Notes"),
     WORLD_CLOCK("World Clock"),
-    SYSTEM("System")
+    SYSTEM("System"),
+    ASTRONOMY("Sun & Moon"),
+    PHOTO("Photos"),
+    NOTIFICATIONS("Notifications"),
+    PRODUCTIVITY("Productivity"),
+    INSPIRATION("Inspiration")
 }
 
 /**
