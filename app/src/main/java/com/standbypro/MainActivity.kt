@@ -91,13 +91,14 @@ class MainActivity : ComponentActivity() {
             val settings by viewModel.settings.collectAsState()
             val ambient by viewModel.ambientDisplayState.collectAsState()
             val brightnessOverride by viewModel.brightnessOverride.collectAsState()
+            val adaptive by viewModel.adaptiveBrightness.collectAsState()
             SideEffect { FaceFonts.clock = settings.clockFont.family() }
 
-            LaunchedEffect(isStandByActive, settings.brightnessLevel, ambient.isNight, brightnessOverride) {
+            LaunchedEffect(isStandByActive, settings.brightnessLevel, ambient.isNight, brightnessOverride, adaptive) {
                 val lp = window.attributes
                 val forced = brightnessOverride
                 lp.screenBrightness = if (isStandByActive) {
-                    val level = settings.brightnessLevel.coerceIn(0.01f, 1.0f)
+                    val level = (adaptive ?: settings.brightnessLevel).coerceIn(0.01f, 1.0f)
                     if (forced != null) forced.coerceIn(0.01f, 1.0f)
                     else if (ambient.isNight) level.coerceAtMost(0.06f) else level
                 } else {

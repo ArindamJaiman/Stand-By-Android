@@ -23,7 +23,8 @@ enum class WidgetCategory(val displayName: String) {
     NOTIFICATIONS("Notifications"),
     PRODUCTIVITY("Productivity"),
     INSPIRATION("Inspiration"),
-    WELLBEING("Wellbeing")
+    WELLBEING("Wellbeing"),
+    FINANCE("Finance")
 }
 
 /**

@@ -92,6 +92,8 @@ object WatchFaceRegistry {
         face("digital_binary", "Binary", WatchFaceCategory.DIGITAL, "BCD binary columns for hours, minutes and seconds") { c, m -> DigitalBinaryFace(c, m) },
         face("digital_seconds_ring", "Seconds Ring", WatchFaceCategory.DIGITAL, "Digital time inside a ring of 60 lighting pearls", true) { c, m -> DigitalSecondsRingFace(c, m) },
         face("digital_code_rain", "Code Rain", WatchFaceCategory.DIGITAL, "Falling glyph columns around a glowing terminal clock", true) { c, m -> CodeRainFace(c, m) },
+        face("digital_kinetic", "Kinetic", WatchFaceCategory.DIGITAL, "24 little clocks sweep their hands into the time", true) { c, m -> KineticFace(c, m) },
+        face("digital_liquid_glass", "Liquid Glass", WatchFaceCategory.DIGITAL, "A frosted glass pill floating over moving colour", true) { c, m -> LiquidGlassFace(c, m) },
         face("digital_big_date", "Big Date", WatchFaceCategory.CALENDAR, "Editorial calendar: a giant date, the time and what's next", true, live = true) { c, m -> BigDateFace(c, m) },
         face("music_vinyl", "Vinyl", WatchFaceCategory.MUSIC, "A turntable that spins your album art while music plays", true, live = true) { c, m -> VinylFace(c, m) },
 
@@ -143,6 +145,8 @@ object WatchFaceRegistry {
         face("productivity_focus", "Deep Work", WatchFaceCategory.PRODUCTIVITY, "A calm clock with your current focus session", interactive = true) { c, m -> FocusClockFace(c, m) },
         face("productivity_day_progress", "Progress", WatchFaceCategory.PRODUCTIVITY, "How much of today, this week, month and year has passed", true) { c, m -> DayProgressFace(c, m) },
         face("productivity_countdown", "Countdown", WatchFaceCategory.PRODUCTIVITY, "Days, hours and minutes until your big day", true) { c, m -> CountdownFace(c, m) },
+        face("productivity_year_dots", "Year in Dots", WatchFaceCategory.PRODUCTIVITY, "Every day of the year as a dot, one row per month", true) { c, m -> YearDotsFace(c, m) },
+        face("productivity_sleep_cycles", "Sleep Cycles", WatchFaceCategory.PRODUCTIVITY, "Sleep left before your alarm, in 90-minute cycles", true, live = true) { c, m -> SleepCyclesFace(c, m) },
         face("productivity_agenda", "Agenda", WatchFaceCategory.CALENDAR, "Today's calendar events beside the date", true, live = true) { c, m -> AgendaFace(c, m) },
 
         // ---------------- AMBIENT ----------------
@@ -157,6 +161,10 @@ object WatchFaceRegistry {
         face("ambient_breathe", "Breathe", WatchFaceCategory.AMBIENT, "Guided box breathing: a bloom that grows as you inhale", true) { c, m -> BreathingFace(c, m) },
         face("ambient_silk", "Silk", WatchFaceCategory.AMBIENT, "Flowing ribbons of light in your accent colour", true) { c, m -> SilkFace(c, m) },
         face("ambient_sakura", "Sakura", WatchFaceCategory.ARTISTIC, "A cherry branch under the moon with drifting petals", true) { c, m -> SakuraFace(c, m) },
+        face("ambient_fireplace", "Fireplace", WatchFaceCategory.AMBIENT, "A crackling hearth with rising embers", true) { c, m -> FireplaceFace(c, m) },
+        face("ambient_lighthouse", "Lighthouse", WatchFaceCategory.AMBIENT, "A beacon sweeping across a moonlit sea", true) { c, m -> LighthouseFace(c, m) },
+        face("ambient_snowfall", "Snowfall", WatchFaceCategory.AMBIENT, "A warm cabin in a snowy pine valley", true) { c, m -> SnowfallFace(c, m) },
+        face("artistic_pixel_day", "Pixel Day", WatchFaceCategory.ARTISTIC, "An 8-bit landscape whose sky follows the real time of day", true) { c, m -> PixelDayFace(c, m) },
         face("ambient_tide", "Tide", WatchFaceCategory.AMBIENT, "Water rises through the hour; the hour floats inside", true) { c, m -> TideFace(c, m) },
 
         // ---------------- ARTISTIC ----------------

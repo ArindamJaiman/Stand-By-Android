@@ -105,6 +105,12 @@ data class StandBySettings(
     val autoDimEnabled: Boolean = true,
     val autoDimTimeoutSeconds: Int = 60,
     val brightnessLevel: Float = 0.35f,
+    /** Follow room light with the ambient light sensor; the slider biases the curve. */
+    val autoBrightness: Boolean = false,
+    /** Wave a hand over the proximity sensor to show controls and wake from dim. */
+    val waveToWake: Boolean = false,
+    /** The speak button reads the weather, next event and alarm as well as the time. */
+    val spokenBriefing: Boolean = false,
 
     // Clock
     val use24Hour: Boolean = false,

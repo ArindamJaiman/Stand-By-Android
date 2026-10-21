@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.BrightnessHigh
 import androidx.compose.material.icons.filled.BrightnessLow
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Star
@@ -117,6 +118,8 @@ fun StandByScreen(
     var lightLevel by remember { mutableFloatStateOf(0.6f) }
     var lightWarmth by remember { mutableFloatStateOf(0.25f) }
     var sunriseDismissedFor by remember { mutableStateOf<Long?>(null) }
+    var locked by remember { mutableStateOf(false) }
+    var lockHint by remember { mutableIntStateOf(0) }
     val sunriseLevel = if (sunriseDismissedFor != null && sunriseDismissedFor == ctx.nextAlarmMillis) 0f else sunrise
 
     // Night light and sunrise light take over the window brightness.
@@ -195,6 +198,15 @@ fun StandByScreen(
         lastTouch++
     }
 
+    // Wave to wake: a hand over the proximity sensor counts as a touch and shows the controls.
+    LaunchedEffect(settings.waveToWake) {
+        if (!settings.waveToWake) return@LaunchedEffect
+        viewModel.waves.collect {
+            touched()
+            if (locked) lockHint++ else controlsVisible = true
+        }
+    }
+
     Box(modifier.fillMaxSize()) {
         Box(
             Modifier
@@ -205,6 +217,7 @@ fun StandByScreen(
                     detectTapGestures(
                         onTap = {
                             touched()
+                            if (locked) return@detectTapGestures
                             if (pickerVisible || sleepVisible) {
                                 pickerVisible = false
                                 sleepVisible = false
@@ -212,11 +225,13 @@ fun StandByScreen(
                         },
                         onDoubleTap = {
                             touched()
+                            if (locked) return@detectTapGestures
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.cycleWatchFace()
                         },
                         onLongPress = {
                             touched()
+                            if (locked) return@detectTapGestures
                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                             pickerVisible = true
                             controlsVisible = false
@@ -225,7 +240,7 @@ fun StandByScreen(
                 }
         ) {
             BackdropLayer(ambient.backdrop, ambient.activeThemeColor, animate = !ambient.isNight, modifier = Modifier.fillMaxSize())
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize(), userScrollEnabled = !locked) { page ->
                 Box(
                     Modifier.fillMaxSize().offset { offset }.padding(horizontal = 22.dp, vertical = 14.dp)
                 ) {
@@ -287,7 +302,16 @@ fun StandByScreen(
                     },
                     onFaces = { touched(); pickerVisible = true; controlsVisible = false },
                     onSleep = { touched(); sleepVisible = true; pickerVisible = false; controlsVisible = false },
-                    onSpeak = { touched(); speaker.speak(ctx.time.hour, ctx.time.minute) }
+                    onSpeak = { touched(); speaker.speakText(viewModel.spokenText()) },
+                    onLock = {
+                        touched()
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        locked = true
+                        controlsVisible = false
+                        pickerVisible = false
+                        sleepVisible = false
+                        lockHint++
+                    }
                 )
             }
 
@@ -321,6 +345,16 @@ fun StandByScreen(
                     onNightLight = { touched(); sleepVisible = false; nightLight = true },
                     onClose = { touched(); sleepVisible = false }
                 )
+            }
+
+            // Display lock: swallows every touch until a long press.
+            if (locked) {
+                LockOverlay(lockHint, ambient.activeThemeColor, onTap = { touched(); lockHint++ }) {
+                    touched()
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    locked = false
+                    controlsVisible = true
+                }
             }
 
             ChargingOverlay(chargingSplash, ctx.battery) { chargingSplash = false }
@@ -410,7 +444,8 @@ private fun ControlsBar(
     onCycleTheme: () -> Unit,
     onFaces: () -> Unit,
     onSleep: () -> Unit,
-    onSpeak: () -> Unit
+    onSpeak: () -> Unit,
+    onLock: () -> Unit
 ) {
     var local by remember(brightness) { mutableFloatStateOf(brightness) }
     Row(
@@ -424,7 +459,7 @@ private fun ControlsBar(
             Text(faceName, color = Ink.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
         }
         Row(
-            Modifier.width(220.dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.10f)).padding(horizontal = 10.dp),
+            Modifier.width(190.dp).clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.10f)).padding(horizontal = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(Icons.Default.BrightnessLow, null, tint = Ink.TextSecondary, modifier = Modifier.size(16.dp))
@@ -440,6 +475,7 @@ private fun ControlsBar(
         RoundChip(if (isNight) Icons.Default.LightMode else Icons.Default.DarkMode, "Night mode", onToggleNight, active = isNight, accent = Ink.Red)
         RoundChip(Icons.Default.Bedtime, "Sleep sounds and night light", onSleep)
         RoundChip(Icons.Default.RecordVoiceOver, "Speak the time", onSpeak)
+        RoundChip(Icons.Default.Lock, "Lock the display", onLock)
         RoundChip(Icons.Default.Palette, "Accent colour", onCycleTheme, accent = accent)
         RoundChip(Icons.Default.Star, "Favourite faces", onFaces)
         RoundChip(Icons.Default.Tune, "Open Studio", onStudio)

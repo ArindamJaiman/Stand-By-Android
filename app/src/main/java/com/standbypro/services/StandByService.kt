@@ -13,6 +13,8 @@ import androidx.core.app.NotificationCompat
 import com.standbypro.MainActivity
 import com.standbypro.R
 import com.standbypro.appwidget.StandByAppWidget
+import com.standbypro.data.ChargeHistoryRepository
+import com.standbypro.data.ChargeSessionTracker
 import com.standbypro.domain.StandByController
 import com.standbypro.domain.StandByState
 import com.standbypro.hardware.ChargingStateMonitor
@@ -41,6 +43,7 @@ class StandByService : Service() {
     private lateinit var chargingMonitor: ChargingStateMonitor
     private lateinit var settingsRepository: SettingsRepository
     private val chargeLimitWatcher = ChargeLimitWatcher()
+    private val chargeTracker = ChargeSessionTracker()
 
     private var chargingWakeLock: PowerManager.WakeLock? = null
     private var isStandByActive = false
@@ -84,6 +87,15 @@ class StandByService : Service() {
         scope.launch {
             chargingMonitor.chargingState.map { it.isCharging }.distinctUntilChanged().collect {
                 StandByAppWidget.updateAll(applicationContext)
+            }
+        }
+
+        // Charge history: record each completed charge for the Charge History widget.
+        scope.launch {
+            ChargeHistoryRepository.load(applicationContext)
+            chargingMonitor.chargingState.collect { s ->
+                chargeTracker.update(s.isCharging, s.batteryPercent, s.temperatureCelsius, System.currentTimeMillis())
+                    ?.let { ChargeHistoryRepository.add(applicationContext, it) }
             }
         }
 

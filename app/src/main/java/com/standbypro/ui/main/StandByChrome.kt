@@ -12,6 +12,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Timer
@@ -36,7 +38,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +56,7 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -94,6 +99,36 @@ fun Modifier.nightFilter(style: NightStyle, strength: Float): Modifier = if (str
         canvas.saveLayer(Rect(Offset.Zero, size), paint)
         drawContent()
         canvas.restore()
+    }
+}
+
+/**
+ * Display lock: a transparent layer over the display that swallows taps and swipes (so a cat or a
+ * child can't change faces) and unlocks on a long press. Each tap flashes a short hint.
+ */
+@Composable
+fun LockOverlay(hintKey: Int, accent: Color, onTap: () -> Unit, onUnlock: () -> Unit) {
+    var hintVisible by remember { mutableStateOf(true) }
+    LaunchedEffect(hintKey) {
+        hintVisible = true
+        kotlinx.coroutines.delay(2500L)
+        hintVisible = false
+    }
+    Box(
+        Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures(onTap = { onTap() }, onLongPress = { onUnlock() }) },
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        AnimatedVisibility(hintVisible, enter = fadeIn(), exit = fadeOut()) {
+            Row(
+                Modifier.padding(bottom = 18.dp).clip(RoundedCornerShape(50)).background(Color(0xFF0E0E10)).border(1.dp, Ink.Hairline, RoundedCornerShape(50))
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Default.Lock, null, tint = accent, modifier = Modifier.size(15.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Locked  ·  press and hold to unlock", color = Ink.TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
     }
 }
 

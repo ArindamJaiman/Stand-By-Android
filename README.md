@@ -1,7 +1,7 @@
 # 🌙 StandBy Pro for Android
 
 <p align="center">
-  <b>An iOS-style StandBy smart display for Android — 120+ watch faces, 26 live widgets, curated themes, smart stacks, a true red night mode and a full bedside toolkit.</b><br>
+  <b>An iOS-style StandBy smart display for Android — 129 watch faces, 28 live widgets, curated themes, smart stacks, a true red night mode and a full bedside toolkit.</b><br>
   Built with Jetpack Compose and Material 3. No ads, no accounts, no trackers.
 </p>
 
@@ -21,9 +21,12 @@
 - **Live Activity pill** for running timers, Pomodoro, stopwatch and now-playing media.
 - **Charging moment**: a glowing ring sweeps to your battery level when you plug in.
 - **Screen care**: slow burn-in drift, configurable auto-dim, per-frame-cheap rendering.
+- **Adaptive brightness**: follows the light in the room through the ambient light sensor; the brightness slider makes the curve brighter or dimmer.
+- **Wave to wake**: wave a hand over the top of the phone to show the controls and lift the dim — no need to touch it.
+- **Display lock**: one tap locks StandBy against accidental touches (cats, kids, sleepy hands); press and hold to unlock.
 - **Launch anywhere**: Quick Settings tile, plus launcher shortcuts for **StandBy** and **Bedside** (starts straight into night mode).
 - **Face shuffle**: rotate through your favourite faces every 5–60 minutes while untouched.
-- **Talking clock**: one tap speaks the time ("It's quarter past seven").
+- **Talking clock & spoken briefing**: one tap speaks the time ("It's quarter past seven") — or, with the briefing on, the weather, rain outlook, your next event and your alarm.
 - **Hourly chime** (silent at night) and **Bedtime blackout** that fades the display almost to black at night.
 - **Up Next pill**: a meeting starting within 15 minutes appears in the Live Activity pill with its calendar colour; a **Rain likely** heads-up appears when rain is forecast in the next two hours.
 - **Screen saver**: pick StandBy Pro in Android's Display → Screen saver and your dashboard appears whenever the phone is charging or docked — night mode and burn-in drift included.
@@ -46,29 +49,31 @@
 
 Find the sound machine, timer and night light behind the moon button on the StandBy display; the rest lives in Studio → Behaviour → Bedtime & battery.
 
-### 120+ watch faces in 15 families
+### 129 watch faces in 15 families
 | Family | Highlights |
 | --- | --- |
 | **Analog (31)** | StandBy Analog, **Carbon** (woven carbon chronometer with a battery register), **Marble** (Carrara dial in gold), Luxury Gold, Chronograph (working 24h/30-min/12h registers + tachymeter), Pilot, Diver 300M, Skeleton (moving gears), Tourbillon, Railway, Regulator, Pocket Watch, California, Field, Meridian, Typograph, Contour, Numerals, Solar Dial (real sun elevation), Infograph (live complications), Moonphase (real phase), Sundial, Rings… |
-| **Digital (22)** | **Code Rain**, Minimal, Float, Bold Stack, Vertical, OLED, Split, Gradient, Neon, Outline, Frosted Glass, Swiss Poster, Typewriter, Spoken, Word Clock, Seven Segment, Retro LCD, Dot Matrix, Nixie Tubes, Terminal, Binary, Seconds Ring |
+| **Digital (24)** | **Kinetic** (24 little clocks sweep their hands into the time), **Liquid Glass**, **Code Rain**, Minimal, Float, Bold Stack, Vertical, OLED, Split, Gradient, Neon, Outline, Frosted Glass, Swiss Poster, Typewriter, Spoken, Word Clock, Seven Segment, Retro LCD, Dot Matrix, Nixie Tubes, Terminal, Binary, Seconds Ring |
 | **GMT & World (7)** | GMT Master (second time zone), GMT Calendar, World Time (rotating 24-city ring), Dual Time, World Clocks, Time Zones, Day & Night map with live terminator |
 | **Hybrid & Modular (8)** | Ana-Digi, Battery Gauge, Weather Dial, Day-Date, GMT Weather, Modular, Infograph Modular, Dashboard |
 | **Flip (6)** | Real animated split-flap cards: Classic, Midnight, Amber, Graphite, Paper, Seconds |
 | **Weather (7)** | **Rain on Glass** (rivulets run when it's really raining), Living Sky (animated real conditions), Weather Now, Hourly curve, Forecast bars, Thermo Dial, Sunrise & Sunset |
 | **Astronomy (3)** | Moon (real phase, next full/new), Orrery (planets where they are today), Night Sky |
-| **Productivity (7)** | Pomodoro, Timer, Stopwatch (working, with alarm chime), Deep Work, Progress, Countdown, Agenda |
-| **Ambient & Artistic (21)** | **Silk**, **Sakura**, Breathe (guided box breathing), Aurora, Deep Cosmos, Moonlit Ocean, Firefly Forest, Alpine, Zen, Void, Lava Lamp, Tide, Bauhaus Shapes, Synthwave, Ensō, Orbits, Radar, Fibonacci clock, Pendulum, Hourglass, Spiral |
+| **Productivity (9)** | **Sleep Cycles** (sleep left before your alarm in 90-minute cycles), **Year in Dots**, Pomodoro, Timer, Stopwatch (working, with alarm chime), Deep Work, Progress, Countdown, Agenda |
+| **Ambient & Artistic (25)** | **Fireplace**, **Lighthouse**, **Snowfall**, **Pixel Day** (8-bit sky that follows the real time), **Silk**, **Sakura**, Breathe (guided box breathing), Aurora, Deep Cosmos, Moonlit Ocean, Firefly Forest, Alpine, Zen, Void, Lava Lamp, Tide, Bauhaus Shapes, Synthwave, Ensō, Orbits, Radar, Fibonacci clock, Pendulum, Hourglass, Spiral |
 | **Photo (5)** & **Charging (2)** | Photo Frame / Clock / Weather / Agenda / Split, Charging Orb, Power Ring |
 | **Music & Calendar (2)** | **Vinyl** (a turntable that spins your album art while music plays), **Big Date** (editorial calendar with what's next) |
 
 Every face is a pure function of live data (time, battery, weather, calendar, alarms, locations) and scales from gallery thumbnails to tablets.
 
-### 26 widgets — all real data
-Analog & digital clocks · World clock · Month calendar · Up Next (device calendar) · Weather · 5-day forecast · **Air quality** (US AQI, PM2.5, UV) · Breathe · **Now Playing** (album art + controls for Spotify, YouTube Music, podcasts…) · Battery (time to full, temperature) · Next alarm · Timer · Stopwatch · Pomodoro · Progress · Countdown · Reminders · Notes · Notifications (privacy-aware) · Moon · Sun · Photos · Quote of the day · System (RAM, storage, uptime) · GitHub heatmap
+### 28 widgets — all real data
+Analog & digital clocks · World clock · Month calendar · Up Next (device calendar) · Weather · 5-day forecast · **Air quality** (US AQI, PM2.5, UV) · Breathe · **Now Playing** (album art + controls for Spotify, YouTube Music, podcasts…) · Battery (time to full, temperature) · **Charge history** (last seven charges, gain, time, peak temperature) · **Crypto** (BTC, ETH, SOL with 24h change) · Next alarm · Timer · Stopwatch · Pomodoro · Progress · Countdown · Reminders · Notes · Notifications (privacy-aware) · Moon · Sun · Photos · Quote of the day · System (RAM, storage, uptime) · GitHub heatmap
 
 ### Live data sources
 - **Weather**: [Open-Meteo](https://open-meteo.com) (free, no key). City search, or automatic from your time zone — no location permission needed. Cached for offline starts.
 - **Air quality & UV**: Open-Meteo air-quality API (free, no key).
+- **Crypto prices**: CoinGecko's public price API (free, no key), fetched only while the widget is on screen.
+- **Charge history**: recorded on the device by the charging monitor; nothing leaves the phone.
 - **Calendar**: device calendars via `CalendarContract` (read-only).
 - **Media & notifications**: `MediaSessionManager` + notification listener.
 - **Alarms**: `AlarmManager.nextAlarmClock` from any clock app.

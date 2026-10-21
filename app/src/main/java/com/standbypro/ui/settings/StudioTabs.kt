@@ -362,6 +362,8 @@ fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySetti
         StudioSection("Clock") {
             ToggleRow("24-hour time", null, settings.use24Hour, { viewModel.setUse24Hour(it) })
             RowDivider()
+            ToggleRow("Spoken briefing", "The speak button also reads the weather, your next event and alarm", settings.spokenBriefing, { viewModel.setSpokenBriefing(it) })
+            RowDivider()
             ToggleRow("Seconds", "Second hands, seconds digits and progress", settings.showSeconds, { viewModel.setShowSeconds(it) })
             if (settings.showSeconds) {
                 SubLabel("Seconds motion")
@@ -371,7 +373,8 @@ fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySetti
         }
     }
     item(key = "d_brightness") {
-        StudioSection("Brightness", footer = "StandBy overrides screen brightness while it is showing; night mode caps it automatically.") {
+        StudioSection("Brightness", footer = "StandBy overrides screen brightness while it is showing; night mode caps it automatically. With adaptive brightness on, the slider makes the curve brighter or dimmer.") {
+            ToggleRow("Adaptive brightness", "Follow the light in the room", settings.autoBrightness, { viewModel.setAutoBrightness(it) })
             var local by remember(settings.brightnessLevel) { mutableFloatStateOf(settings.brightnessLevel) }
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Slider(
@@ -426,6 +429,8 @@ fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySetti
             ToggleRow("Hourly chime", "A soft chime on the hour (silent at night)", settings.hourlyChime, { viewModel.setHourlyChime(it) })
             RowDivider()
             ToggleRow("Haptics", "Subtle feedback when swiping pages", settings.hapticsEnabled, { viewModel.setHaptics(it) })
+            RowDivider()
+            ToggleRow("Wave to wake", "Wave over the top of the phone to show controls and undim", settings.waveToWake, { viewModel.setWaveToWake(it) })
         }
     }
 }
@@ -744,13 +749,14 @@ fun LazyListScope.behaviourTab(viewModel: StandByViewModel, settings: StandBySet
                 "Swipe up / down" to "Next favourite face or stack widget",
                 "Double-tap" to "Cycle favourite faces",
                 "Long-press" to "Favourites picker",
-                "Tap" to "Show or hide controls"
+                "Tap" to "Show or hide controls",
+                "Lock button" to "Ignore touches until you press and hold"
             ).forEachIndexed { i, (g, d) ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
                     Text(g, color = Ink.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.width(140.dp))
                     Text(d, color = Ink.TextTertiary, fontSize = 13.sp)
                 }
-                if (i < 4) RowDivider()
+                if (i < 5) RowDivider()
             }
         }
     }

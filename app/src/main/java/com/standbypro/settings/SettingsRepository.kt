@@ -57,6 +57,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val AUTO_DIM_ENABLED = booleanPreferencesKey("auto_dim_enabled")
         val AUTO_DIM_TIMEOUT = intPreferencesKey("auto_dim_timeout_seconds")
         val BRIGHTNESS_LEVEL = floatPreferencesKey("brightness_level")
+        val AUTO_BRIGHTNESS = booleanPreferencesKey("auto_brightness")
+        val WAVE_TO_WAKE = booleanPreferencesKey("wave_to_wake")
+        val SPOKEN_BRIEFING = booleanPreferencesKey("spoken_briefing")
         val USE_24_HOUR = booleanPreferencesKey("use_24_hour")
         val SHOW_SECONDS = booleanPreferencesKey("show_seconds_v2")
         val SECONDS_MOTION = stringPreferencesKey("seconds_motion")
@@ -129,6 +132,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
             autoDimEnabled = p[Keys.AUTO_DIM_ENABLED] ?: d.autoDimEnabled,
             autoDimTimeoutSeconds = p[Keys.AUTO_DIM_TIMEOUT] ?: d.autoDimTimeoutSeconds,
             brightnessLevel = p[Keys.BRIGHTNESS_LEVEL] ?: d.brightnessLevel,
+            autoBrightness = p[Keys.AUTO_BRIGHTNESS] ?: d.autoBrightness,
+            waveToWake = p[Keys.WAVE_TO_WAKE] ?: d.waveToWake,
+            spokenBriefing = p[Keys.SPOKEN_BRIEFING] ?: d.spokenBriefing,
             use24Hour = p[Keys.USE_24_HOUR] ?: d.use24Hour,
             showSeconds = p[Keys.SHOW_SECONDS] ?: d.showSeconds,
             secondsMotion = enumOr(p[Keys.SECONDS_MOTION], d.secondsMotion),
@@ -199,6 +205,9 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setAutoDimTimeout(seconds: Int) = edit { it[Keys.AUTO_DIM_TIMEOUT] = seconds }
     suspend fun setBrightnessLevel(v: Float) = edit { it[Keys.BRIGHTNESS_LEVEL] = v.coerceIn(0.01f, 1.0f) }
     suspend fun setUse24Hour(v: Boolean) = edit { it[Keys.USE_24_HOUR] = v }
+    suspend fun setAutoBrightness(v: Boolean) = edit { it[Keys.AUTO_BRIGHTNESS] = v }
+    suspend fun setWaveToWake(v: Boolean) = edit { it[Keys.WAVE_TO_WAKE] = v }
+    suspend fun setSpokenBriefing(v: Boolean) = edit { it[Keys.SPOKEN_BRIEFING] = v }
     suspend fun setShowSeconds(v: Boolean) = edit { it[Keys.SHOW_SECONDS] = v }
     suspend fun setSecondsMotion(v: SecondsMotion) = edit { it[Keys.SECONDS_MOTION] = v.name }
     suspend fun setClockStyle(v: ClockStyle) = edit { it[Keys.CLOCK_STYLE] = v.name }

@@ -21,6 +21,7 @@ import com.standbypro.clock.TimeProvider
 import com.standbypro.data.AirQualityRepository
 import com.standbypro.data.AlarmRepository
 import com.standbypro.data.CalendarRepository
+import com.standbypro.data.ChargeHistoryRepository
 import com.standbypro.data.CityResult
 import com.standbypro.data.DemoDataProvider
 import com.standbypro.data.GitHubContributionsState
@@ -33,6 +34,7 @@ import com.standbypro.data.TasksRepository
 import com.standbypro.data.WeatherRepository
 import com.standbypro.domain.AirQuality
 import com.standbypro.domain.BatteryHealth
+import com.standbypro.domain.Briefing
 import com.standbypro.domain.CalendarEventItem
 import com.standbypro.domain.ChargeType
 import com.standbypro.domain.ChargingState
@@ -48,6 +50,7 @@ import com.standbypro.domain.WeatherData
 import com.standbypro.domain.WidgetRegistry
 import com.standbypro.hardware.AmbientLightMonitor
 import com.standbypro.hardware.ChargingStateMonitor
+import com.standbypro.hardware.ProximityMonitor
 import com.standbypro.media.NowPlayingRepository
 import com.standbypro.notifications.NotificationRepository
 import com.standbypro.power.AutoDimController
@@ -64,8 +67,10 @@ import com.standbypro.ui.design.Backdrop
 import com.standbypro.ui.design.ClockFont
 import com.standbypro.ui.design.SecondsMotion
 import com.standbypro.ui.design.ThemePreset
+import com.standbypro.ui.faces.FaceMath
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -85,6 +90,7 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     private val settingsRepository = SettingsRepository(application.dataStore)
     private val chargingMonitor = ChargingStateMonitor(application)
     private val ambientLightMonitor = AmbientLightMonitor(application)
+    private val proximityMonitor = ProximityMonitor(application)
 
     val settings: StateFlow<StandBySettings> = settingsRepository.settingsFlow
         .stateIn(viewModelScope, SharingStarted.Eagerly, StandBySettings())
@@ -108,6 +114,29 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
         .map { it.nightModeEnabled && it.nightTrigger == NightTrigger.LIGHT_SENSOR && !it.demoModeEnabled }
         .distinctUntilChanged()
         .flatMapLatest { needed -> if (needed) ambientLightMonitor.isNightMode else flowOf(false) }
+
+    /** Brightness from the light sensor when adaptive brightness is on; null otherwise. */
+    val adaptiveBrightness: StateFlow<Float?> = settings
+        .map { it.autoBrightness }
+        .distinctUntilChanged()
+        .flatMapLatest { on ->
+            if (!on) flowOf(null)
+            else combine(ambientLightMonitor.lux, settings.map { it.brightnessLevel }.distinctUntilChanged()) { lux, level ->
+                AmbientLightMonitor.adaptiveBrightness(lux, level)
+            }
+        }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    /** One emission per hand wave over the proximity sensor (collect only when the setting is on). */
+    val waves: Flow<Unit> = proximityMonitor.waves
+
+    /** What the speak button says: the time, or the full daily briefing. */
+    fun spokenText(): String {
+        val ctx = faceContext.value
+        return if (settings.value.spokenBriefing) Briefing.compose(ctx, System.currentTimeMillis())
+        else "It's ${FaceMath.spokenTime(ctx.time.hour, ctx.time.minute)}"
+    }
 
     private val minuteOfDay = currentTime.map { it.hour * 60 + it.minute }.distinctUntilChanged()
 
@@ -291,6 +320,7 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
 
     init {
         TasksRepository.init(application)
+        ChargeHistoryRepository.load(application)
         WeatherRepository.loadCache(application)
 
         viewModelScope.launch {
@@ -442,6 +472,9 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     fun applyTheme(preset: ThemePreset) = launch { settingsRepository.applyTheme(preset) }
     fun setBrightnessLevel(v: Float) = launch { settingsRepository.setBrightnessLevel(v) }
     fun setUse24Hour(v: Boolean) = launch { settingsRepository.setUse24Hour(v) }
+    fun setAutoBrightness(v: Boolean) = launch { settingsRepository.setAutoBrightness(v) }
+    fun setWaveToWake(v: Boolean) = launch { settingsRepository.setWaveToWake(v) }
+    fun setSpokenBriefing(v: Boolean) = launch { settingsRepository.setSpokenBriefing(v) }
     fun setShowSeconds(v: Boolean) = launch { settingsRepository.setShowSeconds(v) }
     fun setSecondsMotion(v: SecondsMotion) = launch { settingsRepository.setSecondsMotion(v) }
     fun setNightModeEnabled(v: Boolean) = launch { settingsRepository.setNightModeEnabled(v) }
