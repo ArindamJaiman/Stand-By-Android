@@ -14,10 +14,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,6 +38,7 @@ import com.standbypro.theme.StandByProTheme
 import com.standbypro.ui.StandByViewModel
 import com.standbypro.ui.design.DynamicAccent
 import com.standbypro.ui.design.FaceFonts
+import com.standbypro.ui.main.AlarmRingingScreen
 import com.standbypro.ui.main.StandByScreen
 import com.standbypro.ui.settings.SettingsScreen
 
@@ -92,12 +95,25 @@ class MainActivity : ComponentActivity() {
             val ambient by viewModel.ambientDisplayState.collectAsState()
             val brightnessOverride by viewModel.brightnessOverride.collectAsState()
             val adaptive by viewModel.adaptiveBrightness.collectAsState()
+            val ringing by viewModel.alarmRinging.collectAsState()
             SideEffect { FaceFonts.clock = settings.clockFont.family() }
 
-            LaunchedEffect(isStandByActive, settings.brightnessLevel, ambient.isNight, brightnessOverride, adaptive) {
+            // A ringing alarm keeps the screen on over the lock screen until it's stopped.
+            LaunchedEffect(ringing != null) {
+                if (ringing != null) {
+                    allowOverLockScreen(true)
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else if (!isStandByActive) {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+
+            LaunchedEffect(isStandByActive, settings.brightnessLevel, ambient.isNight, brightnessOverride, adaptive, ringing != null) {
                 val lp = window.attributes
                 val forced = brightnessOverride
-                lp.screenBrightness = if (isStandByActive) {
+                lp.screenBrightness = if (ringing != null) {
+                    0.8f
+                } else if (isStandByActive) {
                     val level = (adaptive ?: settings.brightnessLevel).coerceIn(0.01f, 1.0f)
                     if (forced != null) forced.coerceIn(0.01f, 1.0f)
                     else if (ambient.isNight) level.coerceAtMost(0.06f) else level
@@ -109,27 +125,32 @@ class MainActivity : ComponentActivity() {
 
             StandByProTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    AnimatedContent(
-                        targetState = isStandByActive,
-                        transitionSpec = { fadeIn(tween(450)) togetherWith fadeOut(tween(300)) },
-                        label = "mode"
-                    ) { standBy ->
-                        if (standBy) {
-                            BackHandler { leaveStandBy() }
-                            StandByScreen(
-                                viewModel = viewModel,
-                                onExit = { leaveStandBy() },
-                                onOpenStudio = { openStudio() }
-                            )
-                        } else {
-                            SettingsScreen(
-                                viewModel = viewModel,
-                                onLaunchPreview = {
-                                    isAutoStarted = false
-                                    configureImmersiveStandBy(true)
-                                    isStandByActive = true
-                                }
-                            )
+                    Box(Modifier.fillMaxSize()) {
+                        AnimatedContent(
+                            targetState = isStandByActive,
+                            transitionSpec = { fadeIn(tween(450)) togetherWith fadeOut(tween(300)) },
+                            label = "mode"
+                        ) { standBy ->
+                            if (standBy) {
+                                BackHandler { leaveStandBy() }
+                                StandByScreen(
+                                    viewModel = viewModel,
+                                    onExit = { leaveStandBy() },
+                                    onOpenStudio = { openStudio() }
+                                )
+                            } else {
+                                SettingsScreen(
+                                    viewModel = viewModel,
+                                    onLaunchPreview = {
+                                        isAutoStarted = false
+                                        configureImmersiveStandBy(true)
+                                        isStandByActive = true
+                                    }
+                                )
+                            }
+                        }
+                        AnimatedVisibility(ringing != null, enter = fadeIn(tween(600)), exit = fadeOut(tween(400))) {
+                            AlarmRingingScreen(viewModel, ringing)
                         }
                     }
                 }
@@ -227,5 +248,6 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_AUTO_STARTED = "EXTRA_AUTO_STARTED"
         const val ACTION_START_STANDBY = "com.standbypro.action.START_STANDBY"
         const val ACTION_START_BEDSIDE = "com.standbypro.action.START_BEDSIDE"
+        const val ACTION_ALARM_RING = "com.standbypro.action.ALARM_RING"
     }
 }

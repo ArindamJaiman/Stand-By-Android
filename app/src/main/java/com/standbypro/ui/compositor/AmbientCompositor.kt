@@ -1,5 +1,7 @@
 package com.standbypro.ui.compositor
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,19 +29,25 @@ fun AmbientCompositor(
     modifier: Modifier = Modifier
 ) {
     val widgets = state.widgets.map { it.widgetId }
+    // Faces cross-fade when they change (picker, shuffle, or the night face taking over).
+    val face: @Composable (Modifier, FaceContext) -> Unit = { m, c ->
+        Crossfade(targetState = state.watchFaceId, animationSpec = tween(600), label = "face", modifier = m) { id ->
+            WatchFaceRegistry.Render(id, c, Modifier.fillMaxSize())
+        }
+    }
     fun w(i: Int, fallback: String) = widgets.getOrNull(i)?.takeIf { WidgetRegistry.contains(it) } ?: fallback
     val gap = 14.dp
     Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         when (state.layout) {
             DashboardLayoutType.SINGLE -> {
-                WatchFaceRegistry.Render(state.watchFaceId, ctx, Modifier.fillMaxSize())
+                face(Modifier.fillMaxSize(), ctx)
             }
             DashboardLayoutType.DUO -> Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.weight(1f).fillMaxHeight()) { WatchFaceRegistry.Render(state.watchFaceId, ctx, Modifier.fillMaxSize()) }
+                face(Modifier.weight(1f).fillMaxHeight(), ctx)
                 Box(Modifier.weight(1f).fillMaxHeight()) { WidgetRegistry.Render(w(0, "widget_calendar"), ctx.copy(isCompact = true), Modifier.fillMaxSize()) }
             }
             DashboardLayoutType.TRIPLE -> Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                Box(Modifier.weight(1.15f).fillMaxHeight()) { WatchFaceRegistry.Render(state.watchFaceId, ctx, Modifier.fillMaxSize()) }
+                face(Modifier.weight(1.15f).fillMaxHeight(), ctx)
                 Column(Modifier.weight(0.85f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
                     WidgetRegistry.Render(w(0, "widget_weather"), ctx.copy(isCompact = true), Modifier.fillMaxWidth().weight(1f))
                     WidgetRegistry.Render(w(1, "widget_battery"), ctx.copy(isCompact = true), Modifier.fillMaxWidth().weight(1f))
@@ -47,7 +55,7 @@ fun AmbientCompositor(
             }
             DashboardLayoutType.QUAD -> Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(gap)) {
                 Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {
-                    Box(Modifier.fillMaxWidth().weight(1f)) { WatchFaceRegistry.Render(state.watchFaceId, ctx.copy(isCompact = true), Modifier.fillMaxSize()) }
+                    face(Modifier.fillMaxWidth().weight(1f), ctx.copy(isCompact = true))
                     WidgetRegistry.Render(w(1, "widget_calendar"), ctx.copy(isCompact = true), Modifier.fillMaxWidth().weight(1f))
                 }
                 Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(gap)) {

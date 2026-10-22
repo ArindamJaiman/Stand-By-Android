@@ -72,9 +72,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.standbypro.data.ProductivityRepository
 import com.standbypro.domain.FaceContext
+import com.standbypro.domain.NotificationItem
+import com.standbypro.domain.NotificationPrivacy
+import com.standbypro.domain.RainSoon
+import com.standbypro.domain.SmartStackBrain
 import com.standbypro.domain.WatchFaceRegistry
 import com.standbypro.domain.WidgetRegistry
+import com.standbypro.media.NowPlayingRepository
 import com.standbypro.power.AutoDimController
 import com.standbypro.settings.StandByColorTheme
 import com.standbypro.settings.StandByPage
@@ -119,6 +125,8 @@ fun StandByScreen(
     var lightWarmth by remember { mutableFloatStateOf(0.25f) }
     var sunriseDismissedFor by remember { mutableStateOf<Long?>(null) }
     var locked by remember { mutableStateOf(false) }
+    var peek by remember { mutableStateOf<NotificationItem?>(null) }
+    var lastNotificationId by remember { mutableStateOf(ambient.notificationState.notifications.firstOrNull()?.id) }
     var lockHint by remember { mutableIntStateOf(0) }
     val sunriseLevel = if (sunriseDismissedFor != null && sunriseDismissedFor == ctx.nextAlarmMillis) 0f else sunrise
 
@@ -198,6 +206,18 @@ fun StandByScreen(
         lastTouch++
     }
 
+    // Notification banners: a new notification slides in for a few seconds (never when hidden).
+    val topNotification = ambient.notificationState.notifications.firstOrNull()
+    LaunchedEffect(topNotification?.id) {
+        val top = topNotification ?: return@LaunchedEffect
+        if (top.id == lastNotificationId) return@LaunchedEffect
+        lastNotificationId = top.id
+        if (!settings.notificationBanners || ambient.notificationState.privacyMode == NotificationPrivacy.HIDDEN) return@LaunchedEffect
+        peek = top
+        delay(6000L)
+        peek = null
+    }
+
     // Wave to wake: a hand over the proximity sensor counts as a touch and shows the controls.
     LaunchedEffect(settings.waveToWake) {
         if (!settings.waveToWake) return@LaunchedEffect
@@ -258,6 +278,7 @@ fun StandByScreen(
             }
 
             LiveActivityPill(ambient.liveActivity, ambient.activeThemeColor, Modifier.align(Alignment.TopCenter).padding(top = 10.dp))
+            NotificationPeek(peek, ambient.notificationState.privacyMode, ambient.activeThemeColor, Modifier.align(Alignment.TopCenter).padding(top = 10.dp))
             NotificationBadge(ambient.notificationState, Modifier.align(Alignment.BottomStart).padding(start = 22.dp, bottom = 10.dp))
 
             // Dim overlay (inactivity)
@@ -371,23 +392,45 @@ fun StandByScreen(
     }
 }
 
-/** Two independent vertical smart stacks, auto-rotating like iOS Smart Rotate. */
+/** Two independent vertical smart stacks that surface the right widget for the moment, like iOS. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SmartStacks(ctx: FaceContext, left: List<String>, right: List<String>, smartRotate: Boolean, modifier: Modifier) {
+    val media by NowPlayingRepository.state.collectAsState()
+    val timer by ProductivityRepository.timerState.collectAsState()
+    val pomodoro by ProductivityRepository.pomodoroState.collectAsState()
+    val stopwatch by ProductivityRepository.stopwatchState.collectAsState()
+    val now = System.currentTimeMillis()
+    val signals = SmartStackBrain.Signals(
+        hour = ctx.time.hour,
+        musicPlaying = media.hasSession && media.isPlaying,
+        timerRunning = timer.isRunning,
+        pomodoroRunning = pomodoro.isRunning,
+        stopwatchRunning = stopwatch.isRunning,
+        minutesToNextEvent = ctx.events.filter { !it.isAllDay && it.startMillis > now }.minOfOrNull { ((it.startMillis - now) / 60_000L).toInt() },
+        rainSoon = RainSoon.outlook(ctx.weather) != null,
+        isNight = ctx.isNight,
+        charging = ctx.battery.isCharging,
+        batteryPercent = ctx.battery.batteryPercent
+    )
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        SmartStack(left.filter { WidgetRegistry.contains(it) }.ifEmpty { listOf("widget_clock_analog") }, ctx, smartRotate, 0, Modifier.weight(1f).fillMaxHeight())
-        SmartStack(right.filter { WidgetRegistry.contains(it) }.ifEmpty { listOf("widget_calendar") }, ctx, smartRotate, 1, Modifier.weight(1f).fillMaxHeight())
+        SmartStack(left.filter { WidgetRegistry.contains(it) }.ifEmpty { listOf("widget_clock_analog") }, ctx, smartRotate, signals, 0, Modifier.weight(1f).fillMaxHeight())
+        SmartStack(right.filter { WidgetRegistry.contains(it) }.ifEmpty { listOf("widget_calendar") }, ctx, smartRotate, signals, 1, Modifier.weight(1f).fillMaxHeight())
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SmartStack(ids: List<String>, ctx: FaceContext, smartRotate: Boolean, salt: Int, modifier: Modifier) {
+private fun SmartStack(ids: List<String>, ctx: FaceContext, smartRotate: Boolean, signals: SmartStackBrain.Signals, salt: Int, modifier: Modifier) {
     val state = rememberPagerState { ids.size }
     val interaction by AutoDimController.interactions.collectAsState()
-    LaunchedEffect(ids, smartRotate, interaction) {
-        if (!smartRotate || ids.size < 2) return@LaunchedEffect
+    val suggestion = if (smartRotate) SmartStackBrain.suggest(ids, signals) else null
+    // Turn to the suggested widget when the situation changes (music starts, a meeting nears…).
+    LaunchedEffect(suggestion) {
+        if (suggestion != null && suggestion != state.currentPage) state.animateScrollToPage(suggestion)
+    }
+    LaunchedEffect(ids, smartRotate, interaction, suggestion) {
+        if (!smartRotate || ids.size < 2 || suggestion != null) return@LaunchedEffect
         delay(3 * 60 * 1000L + salt * 45_000L)
         while (true) {
             state.animateScrollToPage((state.currentPage + 1) % ids.size)

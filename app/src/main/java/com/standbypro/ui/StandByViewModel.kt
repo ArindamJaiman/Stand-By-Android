@@ -13,7 +13,14 @@ import android.os.VibratorManager
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.standbypro.alarm.AlarmController
+import com.standbypro.alarm.AlarmRinger
+import com.standbypro.alarm.AlarmScheduler
+import com.standbypro.alarm.BedsideAlarm
+import com.standbypro.alarm.RingState
 import com.standbypro.astro.Astronomy
+import com.standbypro.audio.BellSynth
+import com.standbypro.audio.ChimePlayer
 import com.standbypro.audio.SleepSound
 import com.standbypro.audio.SoundMachine
 import com.standbypro.audio.SoundState
@@ -57,6 +64,7 @@ import com.standbypro.power.AutoDimController
 import com.standbypro.power.BurnInOffset
 import com.standbypro.power.BurnInProtectionController
 import com.standbypro.power.DndController
+import com.standbypro.settings.ChimeStyle
 import com.standbypro.settings.NightTrigger
 import com.standbypro.settings.SettingsRepository
 import com.standbypro.settings.StandByPage
@@ -354,6 +362,10 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             ProductivityRepository.finished.collect { chime() }
         }
+        // Keep the bedside alarm registered with the system whenever it changes.
+        viewModelScope.launch {
+            settings.map { it.alarm }.distinctUntilChanged().collect { AlarmController.schedule(app, it) }
+        }
     }
 
     private val _resumeTick = kotlinx.coroutines.flow.MutableStateFlow(0)
@@ -490,8 +502,23 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
     fun setHourlyChime(v: Boolean) = launch { settingsRepository.setHourlyChime(v) }
     fun setNightBlackout(v: Boolean) = launch { settingsRepository.setNightBlackout(v) }
 
-    /** Soft single chime for the top of the hour. */
-    fun hourlyChime() {
+    /** The hourly chime in the user's chosen style. */
+    fun hourlyChime() = playChime(settings.value.chimeStyle)
+
+    fun playChime(style: ChimeStyle) {
+        val hour12 = currentTime.value.hour.let { if (it % 12 == 0) 12 else it % 12 }
+        when (style) {
+            ChimeStyle.SOFT -> softChime()
+            ChimeStyle.WESTMINSTER -> ChimePlayer.play(BellSynth.westminsterHour(hour12), 4.0)
+            ChimeStyle.TEMPLE -> ChimePlayer.play(BellSynth.templeBell(), 6.0)
+        }
+    }
+
+    fun setChimeStyle(v: ChimeStyle) = launch { settingsRepository.setChimeStyle(v) }
+    fun setNotificationBanners(v: Boolean) = launch { settingsRepository.setNotificationBanners(v) }
+    fun dismissWhatsNew(version: Int) = launch { settingsRepository.setWhatsNewSeen(version) }
+
+    private fun softChime() {
         try {
             val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION) ?: return
             RingtoneManager.getRingtone(app, uri)?.apply {
@@ -505,6 +532,21 @@ class StandByViewModel(application: Application) : AndroidViewModel(application)
             // Best effort.
         }
     }
+
+    // ---------------- Bedside alarm ----------------
+
+    val alarmRinging: StateFlow<RingState?> = AlarmRinger.ringing
+    val alarmSnoozedUntil: StateFlow<Long?> = AlarmController.snoozedUntil
+
+    fun setAlarm(alarm: BedsideAlarm) = launch {
+        if (!alarm.enabled) AlarmController.clearSnooze()
+        settingsRepository.setAlarm(alarm)
+    }
+
+    fun previewAlarm() = AlarmController.preview(app, settings.value.alarm)
+    fun snoozeAlarm() = AlarmController.snooze(app)
+    fun dismissAlarm() = AlarmController.dismiss(app)
+    fun canScheduleAlarms(): Boolean = AlarmScheduler.canSchedule(app)
 
     // ---------------- Bedtime ----------------
 

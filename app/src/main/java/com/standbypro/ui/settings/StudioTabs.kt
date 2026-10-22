@@ -84,6 +84,7 @@ import com.standbypro.domain.WatchFaceCategory
 import com.standbypro.domain.WatchFaceDefinition
 import com.standbypro.domain.WatchFaceRegistry
 import com.standbypro.domain.WidgetRegistry
+import com.standbypro.settings.ChimeStyle
 import com.standbypro.settings.NightStyle
 import com.standbypro.settings.NightTrigger
 import com.standbypro.settings.StandByColorTheme
@@ -426,7 +427,11 @@ fun LazyListScope.displayTab(viewModel: StandByViewModel, settings: StandBySetti
             RowDivider()
             ToggleRow("Charging animation", "Glowing ring when you plug in", settings.showChargingAnimation, { viewModel.setShowChargingAnimation(it) })
             RowDivider()
-            ToggleRow("Hourly chime", "A soft chime on the hour (silent at night)", settings.hourlyChime, { viewModel.setHourlyChime(it) })
+            ToggleRow("Hourly chime", "On the hour, never at night", settings.hourlyChime, { viewModel.setHourlyChime(it) })
+            if (settings.hourlyChime) {
+                ChipRow(ChimeStyle.entries, { it == settings.chimeStyle }, { it.label }, { viewModel.setChimeStyle(it); viewModel.playChime(it) }, accent)
+                Text(settings.chimeStyle.description + " · tap a style to hear it", color = Ink.TextTertiary, fontSize = 12.sp, modifier = Modifier.padding(start = 16.dp, bottom = 8.dp))
+            }
             RowDivider()
             ToggleRow("Haptics", "Subtle feedback when swiping pages", settings.hapticsEnabled, { viewModel.setHaptics(it) })
             RowDivider()
@@ -582,6 +587,8 @@ fun LazyListScope.dataTab(
             NavRow("Notification access", "Now Playing and notification badge", value = if (notificationAccess) "On" else "Off", icon = Icons.Default.PowerSettingsNew, iconTint = Ink.Pink) {
                 context.startActivity(android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             }
+            RowDivider()
+            ToggleRow("Notification banners", "New notifications slide in on the display for a few seconds", settings.notificationBanners, { viewModel.setNotificationBanners(it) })
             SubLabel("Notification privacy")
             ChipRow(NotificationPrivacy.entries, { it == settings.notificationPrivacy }, { it.displayName.substringBefore(" (") }, { viewModel.setNotificationPrivacy(it) }, accent)
         }
@@ -658,6 +665,7 @@ fun LazyListScope.dataTab(
 // =============================================================================================
 
 fun LazyListScope.behaviourTab(viewModel: StandByViewModel, settings: StandBySettings) {
+    alarmSection(viewModel, settings)
     item(key = "b_auto") {
         StudioSection("Automatic StandBy", footer = "StandBy starts when the phone is charging, on its side and locked — just like iPhone. The monitor sleeps completely when unplugged.") {
             ToggleRow("StandBy", "Master switch", settings.isEnabled, { viewModel.setEnabled(it) })

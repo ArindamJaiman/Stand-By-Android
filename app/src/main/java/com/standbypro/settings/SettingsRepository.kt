@@ -14,6 +14,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.standbypro.alarm.BedsideAlarm
 import com.standbypro.domain.BottomComplicationType
 import com.standbypro.domain.DashboardLayoutType
 import com.standbypro.domain.NotificationPrivacy
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import java.time.DayOfWeek
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "standby_settings")
 
@@ -98,10 +100,20 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val HAPTICS = booleanPreferencesKey("haptics")
         val FACE_SHUFFLE = intPreferencesKey("face_shuffle_minutes")
         val HOURLY_CHIME = booleanPreferencesKey("hourly_chime")
+        val CHIME_STYLE = stringPreferencesKey("chime_style")
+        val NOTIFICATION_BANNERS = booleanPreferencesKey("notification_banners")
+        val WHATS_NEW_SEEN = intPreferencesKey("whats_new_seen")
         val NIGHT_BLACKOUT = booleanPreferencesKey("night_blackout")
         val SUNRISE_MINUTES = intPreferencesKey("sunrise_minutes")
         val AUTO_DND = booleanPreferencesKey("auto_dnd")
         val CHARGE_LIMIT = intPreferencesKey("charge_limit_percent")
+        val ALARM_ENABLED = booleanPreferencesKey("alarm_enabled")
+        val ALARM_HOUR = intPreferencesKey("alarm_hour")
+        val ALARM_MINUTE = intPreferencesKey("alarm_minute")
+        val ALARM_DAYS = stringPreferencesKey("alarm_days")
+        val ALARM_GENTLE = booleanPreferencesKey("alarm_gentle")
+        val ALARM_SNOOZE = intPreferencesKey("alarm_snooze_minutes")
+        val ALARM_LABEL = stringPreferencesKey("alarm_label")
         val DEMO_MODE_ENABLED = booleanPreferencesKey("demo_mode_enabled")
         val SIMULATE_CHARGING = booleanPreferencesKey("simulate_charging")
         val SIMULATE_NIGHT = booleanPreferencesKey("simulate_night")
@@ -175,10 +187,24 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
             hapticsEnabled = p[Keys.HAPTICS] ?: d.hapticsEnabled,
             faceShuffleMinutes = p[Keys.FACE_SHUFFLE] ?: d.faceShuffleMinutes,
             hourlyChime = p[Keys.HOURLY_CHIME] ?: d.hourlyChime,
+            chimeStyle = enumOr(p[Keys.CHIME_STYLE], d.chimeStyle),
+            notificationBanners = p[Keys.NOTIFICATION_BANNERS] ?: d.notificationBanners,
+            whatsNewSeen = p[Keys.WHATS_NEW_SEEN] ?: d.whatsNewSeen,
             nightBlackout = p[Keys.NIGHT_BLACKOUT] ?: d.nightBlackout,
             sunriseMinutes = p[Keys.SUNRISE_MINUTES] ?: d.sunriseMinutes,
             autoDnd = p[Keys.AUTO_DND] ?: d.autoDnd,
             chargeLimitPercent = p[Keys.CHARGE_LIMIT] ?: d.chargeLimitPercent,
+            alarm = BedsideAlarm(
+                enabled = p[Keys.ALARM_ENABLED] ?: d.alarm.enabled,
+                hour = p[Keys.ALARM_HOUR] ?: d.alarm.hour,
+                minute = p[Keys.ALARM_MINUTE] ?: d.alarm.minute,
+                days = p[Keys.ALARM_DAYS]?.let { stored ->
+                    stored.toList(emptyList()).mapNotNull { name -> DayOfWeek.entries.firstOrNull { it.name == name } }.toSet()
+                } ?: d.alarm.days,
+                gentleWake = p[Keys.ALARM_GENTLE] ?: d.alarm.gentleWake,
+                snoozeMinutes = p[Keys.ALARM_SNOOZE] ?: d.alarm.snoozeMinutes,
+                label = p[Keys.ALARM_LABEL] ?: d.alarm.label
+            ),
             demoModeEnabled = p[Keys.DEMO_MODE_ENABLED] ?: d.demoModeEnabled,
             simulateCharging = p[Keys.SIMULATE_CHARGING] ?: d.simulateCharging,
             simulateNight = p[Keys.SIMULATE_NIGHT] ?: d.simulateNight
@@ -287,10 +313,23 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setHaptics(v: Boolean) = edit { it[Keys.HAPTICS] = v }
     suspend fun setFaceShuffle(minutes: Int) = edit { it[Keys.FACE_SHUFFLE] = minutes }
     suspend fun setHourlyChime(v: Boolean) = edit { it[Keys.HOURLY_CHIME] = v }
+    suspend fun setChimeStyle(v: ChimeStyle) = edit { it[Keys.CHIME_STYLE] = v.name }
+    suspend fun setNotificationBanners(v: Boolean) = edit { it[Keys.NOTIFICATION_BANNERS] = v }
+    suspend fun setWhatsNewSeen(v: Int) = edit { it[Keys.WHATS_NEW_SEEN] = v }
     suspend fun setNightBlackout(v: Boolean) = edit { it[Keys.NIGHT_BLACKOUT] = v }
     suspend fun setSunriseMinutes(v: Int) = edit { it[Keys.SUNRISE_MINUTES] = v }
     suspend fun setAutoDnd(v: Boolean) = edit { it[Keys.AUTO_DND] = v }
     suspend fun setChargeLimit(v: Int) = edit { it[Keys.CHARGE_LIMIT] = v }
+
+    suspend fun setAlarm(alarm: BedsideAlarm) = edit { p ->
+        p[Keys.ALARM_ENABLED] = alarm.enabled
+        p[Keys.ALARM_HOUR] = alarm.hour.coerceIn(0, 23)
+        p[Keys.ALARM_MINUTE] = alarm.minute.coerceIn(0, 59)
+        p[Keys.ALARM_DAYS] = alarm.days.sorted().joinToString(LIST_SEPARATOR) { it.name }
+        p[Keys.ALARM_GENTLE] = alarm.gentleWake
+        p[Keys.ALARM_SNOOZE] = alarm.snoozeMinutes
+        p[Keys.ALARM_LABEL] = alarm.label
+    }
     suspend fun setDemoModeEnabled(v: Boolean) = edit { it[Keys.DEMO_MODE_ENABLED] = v }
     suspend fun setSimulateCharging(v: Boolean) = edit { it[Keys.SIMULATE_CHARGING] = v }
     suspend fun setSimulateNight(v: Boolean) = edit { it[Keys.SIMULATE_NIGHT] = v }

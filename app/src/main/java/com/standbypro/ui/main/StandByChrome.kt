@@ -9,6 +9,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -63,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import com.standbypro.domain.ChargingState
 import com.standbypro.domain.LiveActivityState
 import com.standbypro.domain.NotificationDisplayState
+import com.standbypro.domain.NotificationItem
 import com.standbypro.domain.NotificationPrivacy
 import com.standbypro.settings.NightStyle
 import com.standbypro.ui.design.AutoSizeText
@@ -127,6 +131,42 @@ fun LockOverlay(hintKey: Int, accent: Color, onTap: () -> Unit, onUnlock: () -> 
                 Icon(Icons.Default.Lock, null, tint = accent, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Locked  ·  press and hold to unlock", color = Ink.TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+/**
+ * Banner for a newly arrived notification, sliding down from the top for a few seconds. What it
+ * reveals follows the privacy setting: full text, app name only, or just "New notification".
+ */
+@Composable
+fun NotificationPeek(item: NotificationItem?, privacy: NotificationPrivacy, accent: Color, modifier: Modifier = Modifier) {
+    var last by remember { mutableStateOf(item) }
+    LaunchedEffect(item) { if (item != null) last = item }
+    AnimatedVisibility(
+        visible = item != null,
+        enter = fadeIn() + slideInVertically { -it },
+        exit = fadeOut() + slideOutVertically { -it },
+        modifier = modifier
+    ) {
+        val n = item ?: last ?: return@AnimatedVisibility
+        val app = if (privacy == NotificationPrivacy.FULL || privacy == NotificationPrivacy.APP_NAME_ONLY) n.appName else "Notification"
+        val title = if (privacy == NotificationPrivacy.FULL) n.title else "New notification"
+        val body = if (privacy == NotificationPrivacy.FULL) n.previewText else ""
+        Row(
+            Modifier.widthIn(max = 520.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xFF151518)).border(1.dp, Ink.HairlineStrong, RoundedCornerShape(24.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.size(36.dp).clip(CircleShape).background(accent.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Notifications, null, tint = accent, modifier = Modifier.size(20.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(app.uppercase(), color = accent, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, maxLines = 1)
+                Text(title, color = Ink.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                if (body.isNotBlank()) Text(body, color = Ink.TextSecondary, fontSize = 13.sp, maxLines = 2)
             }
         }
     }

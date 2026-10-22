@@ -43,6 +43,41 @@ object DynamicAccent {
     }
 }
 
+/**
+ * The "Sky" accent: a colour that follows the day — rose at dawn, gold in the morning, blue at
+ * noon, coral at sunset and violet into the night.
+ */
+object SkyAccent {
+    /**
+     * (minute of day, colour) keyframes, interpolated in between. Pale-sky and golden-hour stops
+     * sit between blue and the warm colours so no transition passes through muddy grey.
+     */
+    private val keyframes = listOf(
+        0 to Color(0xFF7B6CFF),
+        5 * 60 + 30 to Color(0xFFFF7A9A),
+        7 * 60 to Color(0xFFFF9F45),
+        10 * 60 to Color(0xFFFFC94A),
+        11 * 60 + 30 to Color(0xFF9FD3FF),
+        13 * 60 to Color(0xFF4FB3FF),
+        16 * 60 + 30 to Color(0xFF6EC4FF),
+        17 * 60 + 30 to Color(0xFFB4DCFF),
+        18 * 60 + 15 to Color(0xFFFFC46B),
+        19 * 60 to Color(0xFFFF6B4A),
+        21 * 60 to Color(0xFFB07BFF),
+        24 * 60 to Color(0xFF7B6CFF)
+    )
+
+    fun colorAt(minuteOfDay: Int): Color {
+        val m = minuteOfDay.mod(24 * 60)
+        val upper = keyframes.indexOfFirst { it.first > m }.coerceAtLeast(1)
+        val (m0, c0) = keyframes[upper - 1]
+        val (m1, c1) = keyframes[upper]
+        return lerpColor(c0, c1, (m - m0).toFloat() / (m1 - m0))
+    }
+
+    fun now(): Color = java.time.LocalTime.now().let { colorAt(it.hour * 60 + it.minute) }
+}
+
 /** Ambient backdrops drawn behind the dashboard and smart stacks. */
 enum class Backdrop(val label: String) {
     BLACK("OLED black"),
@@ -127,7 +162,8 @@ object ThemePresets {
         ThemePreset("rose", "Rosé", "Coral warmth and italic serif", "coral", "digital_typewriter", ClockFont.ELEGANT, Backdrop.GLOW, "AMBER"),
         ThemePreset("deep_space", "Deep Space", "Indigo nebulae under twinkling stars", "indigo", "ambient_galaxy", ClockFont.MODERN, Backdrop.STARS, "RED"),
         ThemePreset("vinyl", "Vinyl Lounge", "A spinning record for your music", "ruby", "music_vinyl", ClockFont.MODERN, Backdrop.GLOW, "RED"),
-        ThemePreset("wallpaper", "Material You", "Colours taken from your wallpaper", "wallpaper", "analog_meridian", ClockFont.MODERN, Backdrop.GLOW, "RED")
+        ThemePreset("wallpaper", "Material You", "Colours taken from your wallpaper", "wallpaper", "analog_meridian", ClockFont.MODERN, Backdrop.GLOW, "RED"),
+        ThemePreset("daybreak", "Daybreak", "An accent that follows the sky through the day", "sky", "ambient_mountain", ClockFont.MODERN, Backdrop.GLOW, "RED")
     )
 
     fun byId(id: String): ThemePreset? = all.firstOrNull { it.id == id }

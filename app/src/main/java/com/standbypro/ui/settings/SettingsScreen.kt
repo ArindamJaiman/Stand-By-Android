@@ -130,6 +130,13 @@ fun SettingsScreen(
             }
         }
 
+        // ---------------- What's new ----------------
+        if (settings.whatsNewSeen < WhatsNew.VERSION) {
+            item(key = "whats_new") {
+                WhatsNewCard(accent) { viewModel.dismissWhatsNew(WhatsNew.VERSION) }
+            }
+        }
+
         // ---------------- Live preview ----------------
         item(key = "preview") {
             Column {

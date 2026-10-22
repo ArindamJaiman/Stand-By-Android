@@ -27,18 +27,22 @@
 - **Launch anywhere**: Quick Settings tile, plus launcher shortcuts for **StandBy** and **Bedside** (starts straight into night mode).
 - **Face shuffle**: rotate through your favourite faces every 5–60 minutes while untouched.
 - **Talking clock & spoken briefing**: one tap speaks the time ("It's quarter past seven") — or, with the briefing on, the weather, rain outlook, your next event and your alarm.
-- **Hourly chime** (silent at night) and **Bedtime blackout** that fades the display almost to black at night.
+- **Hourly chime** (silent at night) in three styles — Soft, **Westminster** (Big Ben's melody, then one strike per hour) or a deep **Temple bell**, all synthesised on the device — and **Bedtime blackout** that fades the display almost to black at night.
+- **Notification banners**: new notifications slide in for a few seconds, revealing only what your privacy setting allows.
+- **Smart Stack suggestions**: like iOS, stacks turn by themselves to what matters now — Now Playing when music starts, a running timer, your next meeting, the weather when rain is coming, Breathe at bedtime.
 - **Up Next pill**: a meeting starting within 15 minutes appears in the Live Activity pill with its calendar colour; a **Rain likely** heads-up appears when rain is forecast in the next two hours.
 - **Screen saver**: pick StandBy Pro in Android's Display → Screen saver and your dashboard appears whenever the phone is charging or docked — night mode and burn-in drift included.
 
 ### Themes
-- **10 curated looks** — StandBy, Midnight Gold, Nordic Frost, Tokyo Neon, Forest Calm, Mono Pro, Rosé, Deep Space, Vinyl Lounge and Material You. One tap sets the accent, face, typeface, backdrop and night tint together.
-- **20 accent colours**, including Lavender, Ruby, Copper, Electric Lime, Lagoon and **Wallpaper** (Material You colours from your wallpaper on Android 12+).
+- **11 curated looks** — StandBy, Midnight Gold, Nordic Frost, Tokyo Neon, Forest Calm, Mono Pro, Rosé, Deep Space, Vinyl Lounge, Material You and Daybreak. One tap sets the accent, face, typeface, backdrop and night tint together.
+- **21 accent colours**, including Lavender, Ruby, Copper, Electric Lime, Lagoon, **Wallpaper** (Material You colours from your wallpaper on Android 12+) and **Sky**, which follows the day from dawn rose to noon blue, sunset coral and night violet.
+- Faces **cross-fade** when they change, whether you pick one, shuffle or the night face takes over.
 - **Clock typeface**: Modern, Classic, Elegant, Condensed or Mono — applied to every face without a signature typeface of its own.
 - **Backdrops** behind the dashboard: OLED black, Graphite, Accent glow, Aurora, Dusk and Starfield. They drift very slowly and pause at night.
 - **Backup & restore**: export every setting to a JSON file and restore it on any phone.
 
 ### Bedside toolkit
+- **Bedside alarm**: StandBy's own alarm with repeat days, a one-minute **gentle wake** fade-in, snooze (5–15 min) and a big, easy-to-hit ringing screen. It rings even when StandBy is closed, survives reboots, shows in the status bar and drives the sunrise light. With wave to wake on, a wave over the phone snoozes it.
 - **Sleep sounds**: rain, ocean, fan, brown, pink and white noise — synthesised on the device, no audio files, with a volume slider.
 - **Sleep timer** (15 min – 1 h 30): fades the sounds out over 30 seconds and pauses whatever music or podcast app is playing.
 - **Sunrise wake light**: 10–30 minutes before your next alarm the display glows from deep red to warm daylight with a rising sun, and the screen brightens with it.
@@ -81,7 +85,7 @@ Analog & digital clocks · World clock · Month calendar · Up Next (device cale
 
 ### StandBy Studio
 A redesigned settings app with a live preview, a setup checklist for permissions, and five tabs:
-**Faces** (searchable gallery of live previews, favourites) · **Widgets** (layouts, slots, smart stacks) · **Display** (themes, typeface, backdrop, 20 accents, seconds motion, brightness, night mode and night face, screen care) · **Data** (weather city, world clocks, photos, countdown, calendar, privacy, reminders, notes, GitHub) · **Behaviour** (auto-start rules, screen saver, bedtime & battery, backup, demo mode, gestures).
+**Faces** (searchable gallery of live previews, favourites) · **Widgets** (layouts, slots, smart stacks) · **Display** (themes, typeface, backdrop, 21 accents, seconds motion, brightness, night mode and night face, chimes, screen care) · **Data** (weather city, world clocks, photos, countdown, calendar, notification banners and privacy, reminders, notes, GitHub) · **Behaviour** (bedside alarm, auto-start rules, screen saver, bedtime & battery, backup, demo mode, gestures). A **What's new** card highlights each release.
 
 ---
 
@@ -105,9 +109,10 @@ A redesigned settings app with a live preview, a setup checklist for permissions
 
 ```
 app/src/main/java/com/standbypro
+├── alarm/            Bedside alarm: scheduling, ringing, snooze, reboot
 ├── appwidget/        Home-screen clock widget
 ├── astro/            Sun, moon and planet maths
-├── audio/            Sleep-sound synthesis + sleep timer
+├── audio/            Sleep sounds, sleep timer, bell-chime synthesis
 ├── data/             Weather, air quality, calendar, alarms, tasks, timers, locations, GitHub
 ├── domain/           Models, FaceContext, face & widget registries
 ├── dream/            System screen saver (DreamService)
@@ -141,6 +146,7 @@ adb install app/build/outputs/apk/debug/app-debug.apk
 1. Allow **notifications** and **full-screen launch** (Android 14+) so StandBy can appear over the lock screen.
 2. Grant **notification access** for Now Playing and notification badges.
 3. Allow **calendar** access for agenda faces.
+   The bedside alarm uses exact alarms; on Android 12 this may ask for "Alarms & reminders" access.
 4. Exclude StandBy from **battery optimisation** so the charging monitor stays alive.
 5. Optional: allow **Do Not Disturb access** if you turn on *Do Not Disturb at night*.
 

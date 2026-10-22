@@ -1,6 +1,7 @@
 package com.standbypro.settings
 
 import androidx.compose.ui.graphics.Color
+import com.standbypro.alarm.BedsideAlarm
 import com.standbypro.domain.BottomComplicationType
 import com.standbypro.domain.DashboardLayoutType
 import com.standbypro.domain.NotificationPrivacy
@@ -11,6 +12,7 @@ import com.standbypro.ui.design.Backdrop
 import com.standbypro.ui.design.ClockFont
 import com.standbypro.ui.design.DynamicAccent
 import com.standbypro.ui.design.SecondsMotion
+import com.standbypro.ui.design.SkyAccent
 
 enum class ClockStyle {
     DIGITAL,
@@ -43,6 +45,9 @@ enum class StandByColorTheme(
     MONOCHROME("monochrome", "OLED Slate", Color(0xFF8E8E93)),
     WALLPAPER("wallpaper", "Wallpaper (Material You)", Color(0xFF8AB4F8)) {
         override val color: Color get() = DynamicAccent.color
+    },
+    SKY("sky", "Sky (follows the day)", Color(0xFF4FB3FF)) {
+        override val color: Color get() = SkyAccent.now()
     };
 
     open val color: Color get() = baseColor
@@ -79,6 +84,13 @@ enum class NightStyle(val id: String, val label: String, val tint: Color) {
     companion object {
         fun fromId(id: String): NightStyle = entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: RED
     }
+}
+
+/** Sound of the hourly chime. */
+enum class ChimeStyle(val label: String, val description: String) {
+    SOFT("Soft", "A gentle system tone"),
+    WESTMINSTER("Westminster", "Big Ben's melody, then one strike per hour"),
+    TEMPLE("Temple bell", "One deep bronze bell")
 }
 
 /** StandBy display pages, swiped horizontally like iOS. */
@@ -159,6 +171,11 @@ data class StandBySettings(
     /** Rotate through favourite faces every N minutes (0 = off). */
     val faceShuffleMinutes: Int = 0,
     val hourlyChime: Boolean = false,
+    val chimeStyle: ChimeStyle = ChimeStyle.SOFT,
+    /** Briefly show new notifications as a banner on the display (respects privacy). */
+    val notificationBanners: Boolean = true,
+    /** Last "What's new" card the user dismissed in Studio. */
+    val whatsNewSeen: Int = 0,
     /** At night, fade the display almost to black so only a faint clock remains. */
     val nightBlackout: Boolean = false,
     /** Sunrise wake light: minutes before the next alarm the display starts to glow (0 = off). */
@@ -167,6 +184,8 @@ data class StandBySettings(
     val autoDnd: Boolean = false,
     /** Notify when charging reaches this level to protect battery health (0 = off). */
     val chargeLimitPercent: Int = 0,
+    /** StandBy's own bedside alarm. */
+    val alarm: BedsideAlarm = BedsideAlarm(),
 
     // Developer / demo simulation overrides
     val demoModeEnabled: Boolean = false,
